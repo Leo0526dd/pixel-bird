@@ -62,6 +62,18 @@ Recommended options:
 
 See [DEPLOY.md](./DEPLOY.md) for deployment steps.
 
+## Offline Play
+
+Pixel Bird is a PWA. After a device successfully opens the game once, the browser caches the app for offline play.
+
+Recommended flow:
+
+1. Open the public game URL once while online.
+2. Use the browser menu to choose `Install app` or `Add to Home screen`.
+3. Open the installed app later, even with weak network or no network.
+
+The first visit still needs access to the hosting URL. If a network cannot reach GitHub Pages at all, share the game through another reachable host or an offline package.
+
 ## Production
 
 ```bash
