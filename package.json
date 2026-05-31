@@ -1,0 +1,28 @@
+{
+  "name": "pixel-bird",
+  "version": "0.1.0",
+  "private": false,
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev",
+    "dev:lan": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "npx serve@latest out",
+    "start:lan": "npx serve@latest out -l tcp://0.0.0.0:3000",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^15.5.18",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.24",
+    "@types/react": "19.0.10",
+    "@types/react-dom": "19.0.4",
+    "autoprefixer": "10.4.21",
+    "postcss": "^8.5.15",
+    "tailwindcss": "3.4.17",
+    "typescript": "5.8.2"
+  }
+}
