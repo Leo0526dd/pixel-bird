@@ -1,0 +1,19 @@
+{
+  "name": "Pixel Bird",
+  "short_name": "Pixel Bird",
+  "description": "A retro pixel flying game that works offline after first load.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#4aa3d8",
+  "theme_color": "#4aa3d8",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -175,6 +175,13 @@ export default function Home() {
   }, [birdKind, paletteId]);
 
   useEffect(() => {
+    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+      void navigator.serviceWorker.register(`${basePath}/sw.js`);
+    }
+  }, []);
+
+  useEffect(() => {
     const storedBest = Number(window.localStorage.getItem("sky-hop-best") || 0);
     if (Number.isFinite(storedBest)) {
       bestRef.current = storedBest;
