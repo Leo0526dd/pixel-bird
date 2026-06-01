@@ -93,9 +93,9 @@
   </main>
   <script>
     const W = 432, H = 640, birdX = 112, birdSize = 34, pipeW = 66, pipeGap = 174, groundH = 86;
-    const gravity = 0.36, flapPower = -7.15, pipeSpeed = 2.18, pipeSpacing = 246, readyFrames = 96;
+    const gravity = 0.36, flapPower = -7.15, pipeSpeed = 2.18, pipeSpacing = 246, readyFrames = 84;
     const isWechat = /MicroMessenger/i.test(navigator.userAgent);
-    const startBufferFrames = isWechat ? 132 : readyFrames;
+    const startBufferFrames = isWechat ? 112 : readyFrames;
     const weatherCycle = ["clear", "cloudy", "rainy", "windy", "snowy"];
     const weatherDurationFrames = 1800, weatherBlendFrames = 520;
     const kinds = [{ id: "chick", name: "小鸡" }, { id: "owl", name: "夜枭" }, { id: "parrot", name: "鹦鹉" }];
@@ -198,7 +198,7 @@
         return;
       }
       const boosting = frame < boostUntil && boostPipesLeft > 0;
-      const speedScale = score === 0 ? .8 : 1;
+      const speedScale = score === 0 ? .9 : 1;
       if (boosting) {
         velocity *= .72;
         birdY += (H * .43 - birdY) * .045;
@@ -233,7 +233,8 @@
       if (score >= 3 && frame % 260 === 0 && arrows.length < 2) arrows.push(createArrow(frame + score));
       const birdRect = { x: birdX - birdSize / 2 + 4, y: birdY - birdSize / 2 + 3, width: birdSize - 8, height: birdSize - 6 };
       const floorY = H - groundH;
-      const hitBoundary = birdRect.y <= 0 || birdRect.y + birdRect.height >= floorY;
+      const hitCeiling = birdRect.y <= 0;
+      const hitGround = birdRect.y + birdRect.height >= floorY;
       for (const fruit of fruits) {
         if (!fruit.taken && intersects(birdRect, { x: fruit.x - 13, y: fruit.y - 13, width: 26, height: 26 })) collectFruit(fruit);
       }
@@ -252,7 +253,7 @@
       if (hitArrow && shieldCharges > 0) {
         useShield(birdRect);
         arrows = arrows.filter((arrow) => !intersects(birdRect, getArrowRect(arrow)));
-      } else if (hitBoundary || hitPipe || hitArrow) finishGame();
+      } else if (hitGround || hitCeiling || hitPipe || hitArrow) finishGame();
       effects = effects.filter((e) => frame - e.start < e.life);
     }
 
