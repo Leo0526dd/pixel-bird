@@ -93,7 +93,9 @@
   </main>
   <script>
     const W = 432, H = 640, birdX = 112, birdSize = 34, pipeW = 66, pipeGap = 182, groundH = 86;
-    const gravity = 0.36, flapPower = -7.15, pipeSpeed = 2.18, pipeSpacing = 246, readyFrames = 78;
+    const gravity = 0.36, flapPower = -7.15, pipeSpeed = 2.18, pipeSpacing = 246, readyFrames = 96;
+    const isWechat = /MicroMessenger/i.test(navigator.userAgent);
+    const startBufferFrames = isWechat ? 132 : readyFrames;
     const weatherCycle = ["clear", "cloudy", "rainy", "windy", "snowy"];
     const weatherDurationFrames = 1800, weatherBlendFrames = 520;
     const kinds = [{ id: "chick", name: "小鸡" }, { id: "owl", name: "夜枭" }, { id: "parrot", name: "鹦鹉" }];
@@ -138,7 +140,8 @@
     function resetGame() {
       score = 0; birdY = 220; velocity = 0; frame = 0; runFrame = 0; shieldUntil = 0; boostUntil = 0; boostPipesLeft = 0; destroyUntil = 0;
       effects = [];
-      pipes = [createPipe(W + 210, 0, 1), createPipe(W + 210 + pipeSpacing, 1, 2), createPipe(W + 210 + pipeSpacing * 2, 2, 3)];
+      const firstPipeX = isWechat ? W + 300 : W + 240;
+      pipes = [createPipe(firstPipeX, 0, 1), createPipe(firstPipeX + pipeSpacing, 1, 2), createPipe(firstPipeX + pipeSpacing * 2, 2, 3)];
       fruits = [createFruit(W + 360, 0), createFruit(W + 360 + pipeSpacing * 2, 2)];
       syncUi();
     }
@@ -179,7 +182,7 @@
 
     function stepGame() {
       runFrame++;
-      if (runFrame < readyFrames) {
+      if (runFrame < startBufferFrames) {
         birdY += Math.sin(frame / 10) * .28;
         return;
       }
@@ -275,7 +278,7 @@
     function drawGame(weather) {
       ctx.clearRect(0, 0, W, H);
       drawSky(weather); drawBoostTrail(); drawFruits(); drawPipes(); drawGround(); drawNpcs(); drawEffects(); drawWeather(weather); drawBird(); drawPowerHud(); drawScore();
-      if (status !== "playing" || runFrame < readyFrames) drawOverlay();
+      if (status !== "playing" || runFrame < startBufferFrames) drawOverlay();
     }
 
     function drawSky(weather) {
@@ -478,7 +481,7 @@
     function drawScore() { ctx.textAlign="center";ctx.textBaseline="top";ctx.font="700 42px ui-monospace, monospace";ctx.lineWidth=7;ctx.strokeStyle="#552b17";ctx.strokeText(String(score),W/2,25);ctx.fillStyle="#fff3aa";ctx.fillText(String(score),W/2,25); }
     function drawOverlay() {
       ctx.fillStyle="rgba(34,23,18,.36)";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff0b8";ctx.fillRect(54,192,W-108,184);ctx.fillStyle="#8d4f26";ctx.fillRect(54,192,W-108,10);ctx.fillRect(54,366,W-108,10);ctx.fillRect(54,192,10,184);ctx.fillRect(W-64,192,10,184);
-      const preparing = status === "playing" && runFrame < readyFrames;
+      const preparing = status === "playing" && runFrame < startBufferFrames;
       ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#5d2f18";ctx.font="700 28px ui-monospace, monospace";ctx.fillText(preparing?"准备":status==="ready"?"像素飞鸟":status==="paused"?"已暂停":"游戏结束",W/2,238);
       ctx.font="700 18px ui-monospace, monospace";ctx.fillText(preparing?"开局保护中":`本局 ${score}   最高 ${best}`,W/2,282);ctx.fillStyle="#2e7d36";ctx.fillRect(118,314,196,34);ctx.fillStyle="#f7ffe8";ctx.font="700 17px ui-monospace, monospace";ctx.fillText(preparing?"看准节奏再飞":status==="paused"?"Esc 继续游戏":"点击 / 空格 起飞",W/2,331);
     }
@@ -508,14 +511,20 @@
     function handlePrimaryInput(event) {
       if (event) event.preventDefault();
       const now = performance.now();
-      if (now - lastTouchAt < 70) return;
+      if (now - lastTouchAt < 140) return;
       lastTouchAt = now;
       flap();
     }
     const canvasButton = document.getElementById("canvasButton");
-    canvasButton.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
-    canvasButton.addEventListener("touchstart", handlePrimaryInput, { passive: false });
-    startBtn.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
+    if (window.PointerEvent) {
+      canvasButton.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
+      startBtn.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
+    } else {
+      canvasButton.addEventListener("touchstart", handlePrimaryInput, { passive: false });
+      startBtn.addEventListener("touchstart", handlePrimaryInput, { passive: false });
+      canvasButton.addEventListener("mousedown", handlePrimaryInput, { passive: false });
+      startBtn.addEventListener("mousedown", handlePrimaryInput, { passive: false });
+    }
     document.addEventListener("touchmove", (event) => event.preventDefault(), { passive: false });
     document.addEventListener("gesturestart", (event) => event.preventDefault());
     document.addEventListener("contextmenu", (event) => event.preventDefault());
