@@ -7,15 +7,17 @@
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
-      margin: 0; min-height: 100%; background: #4aa3d8; color: #2a1a12; font-family: system-ui, sans-serif; overflow: hidden;
+      margin: 0; min-height: 100%; background: #4aa3d8; color: #2a1a12;
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, sans-serif; overflow: hidden;
       overscroll-behavior: none; touch-action: none; -webkit-user-select: none; user-select: none;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: geometricPrecision;
     }
     body {
       display: grid; place-items: center; padding: 8px;
       background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,246,166,.18)),
         repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 1px, transparent 1px 24px), #4aa3d8;
     }
-    .game { width: min(100%, 520px, calc((100vh - 118px) * .675)); display: grid; gap: 6px; }
+    .game { width: min(100%, 520px, calc((100vh - 118px) * .675)); display: grid; gap: 6px; position: relative; }
     .scorebar { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; }
     .scorebar > div, .scorebar > button, .skin-group {
       border: 3px solid #552b17; border-radius: 7px; background: #fff0b8;
@@ -23,7 +25,7 @@
     }
     .scorebar > div { min-height: 42px; display: grid; place-items: center; padding: 4px 8px; }
     .scorebar span, .skin-group span { font-size: 12px; font-weight: 900; line-height: 1; }
-    .scorebar strong { font-family: ui-monospace, monospace; font-size: 20px; line-height: 1; }
+    .scorebar strong { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: 20px; line-height: 1; }
     button { font: inherit; color: inherit; -webkit-appearance: none; appearance: none; touch-action: manipulation; }
     button:focus { outline: none; }
     button:active { filter: none; background-blend-mode: normal; }
@@ -55,7 +57,17 @@
       border: 5px solid #552b17; border-radius: 8px; background: #6ec6f1;
       box-shadow: 0 6px 0 #7b5125, 0 12px 20px rgba(60,35,16,.2); touch-action: none;
     }
-    canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+    canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
+    .audio-panel {
+      position: absolute; right: -76px; top: 104px; width: 70px; display: grid; gap: 6px; padding: 7px 6px;
+      border: 3px solid #552b17; border-radius: 7px; background: #fff0b8;
+      box-shadow: inset -3px -3px 0 rgba(117,70,28,.18), 0 3px 0 #7b5125;
+      font-size: 10px; font-weight: 900; line-height: 1; z-index: 3;
+    }
+    .audio-panel.hidden { display: none; }
+    .audio-panel label { display: grid; gap: 4px; place-items: center; }
+    .audio-panel input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2e7d36; }
+    .audio-panel input[type="range"] { width: 58px; accent-color: #f26f3b; }
     @media (max-width: 420px) {
       body { padding: 6px; }
       .game { width: min(100%, calc((100vh - 96px) * .675)); gap: 5px; }
@@ -67,6 +79,7 @@
       .skin-group > span { font-size: 10px; }
       .segmented button { min-height: 24px; font-size: 10px; }
       .swatches button { width: 22px; height: 22px; }
+      .audio-panel { right: 8px; top: 92px; opacity: .94; }
     }
   </style>
 </head>
@@ -90,6 +103,10 @@
     <button class="canvas-button" id="canvasButton" type="button" aria-label="点击让小鸟飞起来">
       <canvas id="game" width="432" height="640"></canvas>
     </button>
+    <section class="audio-panel" id="audioPanel" aria-label="声音设置">
+      <label><span>音效</span><input id="soundToggle" type="checkbox" checked /></label>
+      <label><span>音量</span><input id="volumeSlider" type="range" min="0" max="100" value="78" /></label>
+    </section>
   </main>
   <script>
     const W = 432, H = 640, birdX = 112, birdSize = 34, pipeW = 66, pipeGap = 174, groundH = 86;
@@ -107,14 +124,21 @@
     ];
     let status = "ready", score = 0, best = Number(localStorage.getItem("pixel-bird-offline-best") || 0);
     let birdY = 220, velocity = 0, pipes = [], fruits = [], arrows = [], effects = [], frame = 0, runFrame = 0, birdKind = "chick", palette = palettes[0];
-    let shieldCharges = 0, boostUntil = 0, boostPipesLeft = 0, destroyCharges = 0, audioContext = null, ambient = null, npcCheerFrame = -999, lastTouchAt = 0;
+    let shieldCharges = 0, shieldGraceUntil = 0, boostUntil = 0, boostPipesLeft = 0, destroyCharges = 0, audioContext = null, ambient = null, npcCheerFrame = -999, lastTouchAt = 0;
+    let soundEnabled = localStorage.getItem("pixel-bird-sound") !== "off", masterVolume = Number(localStorage.getItem("pixel-bird-volume") || .78);
+    if (!Number.isFinite(masterVolume)) masterVolume = .78;
+    masterVolume = clamp(masterVolume, 0, 1);
     const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
     const scoreEl = document.getElementById("score"), bestEl = document.getElementById("best"), startBtn = document.getElementById("startBtn");
+    const audioPanel = document.getElementById("audioPanel"), soundToggle = document.getElementById("soundToggle"), volumeSlider = document.getElementById("volumeSlider");
 
     function syncUi() {
       scoreEl.textContent = score;
       bestEl.textContent = best;
       startBtn.textContent = status === "ready" ? "点击开始" : status === "playing" ? "保持节奏" : status === "paused" ? "继续" : "再来一局";
+      updateAudioPanel();
+      soundToggle.checked = soundEnabled;
+      volumeSlider.value = String(Math.round(masterVolume * 100));
       [...document.querySelectorAll("[data-kind]")].forEach((b) => b.classList.toggle("active", b.dataset.kind === birdKind));
       [...document.querySelectorAll("[data-color]")].forEach((b) => b.classList.toggle("active", b.dataset.color === palette.id));
     }
@@ -137,8 +161,12 @@
       syncUi();
     }
 
+    function updateAudioPanel() {
+      audioPanel.classList.toggle("hidden", status === "playing" && runFrame >= startBufferFrames);
+    }
+
     function resetGame() {
-      score = 0; birdY = 220; velocity = 0; frame = 0; runFrame = 0; shieldCharges = 0; boostUntil = 0; boostPipesLeft = 0; destroyCharges = 0;
+      score = 0; birdY = 220; velocity = 0; frame = 0; runFrame = 0; shieldCharges = 0; shieldGraceUntil = 0; boostUntil = 0; boostPipesLeft = 0; destroyCharges = 0;
       effects = []; arrows = [];
       const firstPipeX = isWechat ? W + 300 : W + 240;
       pipes = [createPipe(firstPipeX, 0, 1), createPipe(firstPipeX + pipeSpacing, 1, 2), createPipe(firstPipeX + pipeSpacing * 2, 2, 3)];
@@ -238,22 +266,28 @@
       for (const fruit of fruits) {
         if (!fruit.taken && intersects(birdRect, { x: fruit.x - 13, y: fruit.y - 13, width: 26, height: 26 })) collectFruit(fruit);
       }
-      const hitPipe = pipes.some((pipe) => {
+      const shieldActive = shieldCharges > 0 || frame < shieldGraceUntil;
+      let obstacleHit = false;
+      for (const pipe of pipes) {
         const topH = pipe.gapY - pipeGap / 2, bottomY = pipe.gapY + pipeGap / 2, mech = getMechanismRect(pipe);
-        if (boosting) return false;
+        if (boosting) continue;
         const hitMech = mech && intersects(birdRect, mech);
-        if (hitMech && destroyCharges > 0) { breakMechanism(pipe, mech); return false; }
-        const hitSolid = intersects(birdRect, { x: pipe.x, y: 0, width: pipeW, height: topH }) ||
+        if (hitMech && destroyCharges > 0) { breakMechanism(pipe, mech); continue; }
+        if (intersects(birdRect, { x: pipe.x, y: 0, width: pipeW, height: topH }) ||
           intersects(birdRect, { x: pipe.x, y: bottomY, width: pipeW, height: floorY - bottomY }) ||
-          hitMech || pipeHazardHit(pipe, birdRect);
-        if (hitSolid && shieldCharges > 0) { useShield(birdRect); return false; }
-        return hitSolid;
-      });
-      const hitArrow = arrows.some((arrow) => intersects(birdRect, getArrowRect(arrow)));
-      if (hitArrow && shieldCharges > 0) {
-        useShield(birdRect);
+          hitMech || pipeHazardHit(pipe, birdRect)) {
+          obstacleHit = true;
+          break;
+        }
+      }
+      const hitArrow = !boosting && arrows.some((arrow) => intersects(birdRect, getArrowRect(arrow)));
+      obstacleHit = obstacleHit || hitArrow;
+      if (hitGround || hitCeiling) {
+        finishGame();
+      } else if (obstacleHit && shieldActive) {
+        if (shieldCharges > 0) useShield(birdRect);
         arrows = arrows.filter((arrow) => !intersects(birdRect, getArrowRect(arrow)));
-      } else if (hitGround || hitCeiling || hitPipe || hitArrow) finishGame();
+      } else if (obstacleHit) finishGame();
       effects = effects.filter((e) => frame - e.start < e.life);
     }
 
@@ -276,6 +310,9 @@
 
     function useShield(rect) {
       shieldCharges = Math.max(0, shieldCharges - 1);
+      shieldGraceUntil = frame + 46;
+      velocity = Math.min(velocity, -4.8);
+      birdY = clamp(birdY - 18, 54, H - groundH - 70);
       effects.push({ kind: "shield", x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, start: frame, life: 44 });
       playFruit("shield");
     }
@@ -292,6 +329,7 @@
       if (status === "playing") stepGame();
       const weather = getWeather(frame);
       updateAmbient(weather);
+      updateAudioPanel();
       if (status === "playing" && frame - npcCheerFrame > 380) { npcCheerFrame = frame; playNpcCheer(Math.floor(frame / 380)); }
       drawGame(weather);
       requestAnimationFrame(loop);
@@ -441,7 +479,7 @@
       if (fruit.type === "shield") { ctx.fillRect(-4, -2, 8, 3); ctx.fillRect(-2, -6, 4, 12); }
       if (fruit.type === "boost") { ctx.fillRect(-2, -8, 5, 13); ctx.fillRect(3, -3, 5, 5); }
       if (fruit.type === "break") { ctx.fillRect(-6, -5, 12, 4); ctx.fillRect(-2, -9, 4, 12); }
-      ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.font = "700 9px ui-monospace, monospace"; ctx.fillStyle = "#552b17";
+      ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.font = "700 9px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif"; ctx.fillStyle = "#552b17";
       ctx.fillText(fruit.type === "boost" ? "冲刺" : fruit.type === "break" ? "破坏" : "盾防", 0, 14);
       ctx.restore();
       }
@@ -538,7 +576,7 @@
 
     function bubble(x, y, text) {
       ctx.fillStyle="#fff0b8"; ctx.fillRect(x-20,y-15,40,20); ctx.fillStyle="#7b5125"; ctx.fillRect(x-20,y-15,40,3); ctx.fillRect(x-20,y+2,40,3); ctx.fillRect(x-20,y-15,3,20); ctx.fillRect(x+17,y-15,3,20);
-      ctx.fillStyle="#5d2f18"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.font="700 11px ui-monospace, monospace"; ctx.fillText(text,x,y-5);
+      ctx.fillStyle="#5d2f18"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.font="700 11px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif"; ctx.fillText(text,x,y-5);
     }
 
     function drawBird() {
@@ -558,15 +596,15 @@
       if (shieldCharges > 0) items.push([`盾防${shieldCharges}`, "#58cfa6"]);
       if (frame < boostUntil && boostPipesLeft > 0) items.push([`冲刺${boostPipesLeft}`, "#f6c65b"]);
       if (destroyCharges > 0) items.push([`破坏${destroyCharges}`, "#e85b7d"]);
-      ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "700 13px ui-monospace, monospace";
+      ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "700 13px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
       items.forEach((item, i) => { const x = 12 + i * 64; ctx.fillStyle = "#552b17"; ctx.fillRect(x, 18, 58, 22); ctx.fillStyle = item[1]; ctx.fillRect(x + 3, 21, 52, 16); ctx.fillStyle = "#fff8d9"; ctx.fillText(item[0], x + 7, 29); });
     }
-    function drawScore() { ctx.textAlign="center";ctx.textBaseline="top";ctx.font="700 42px ui-monospace, monospace";ctx.lineWidth=7;ctx.strokeStyle="#552b17";ctx.strokeText(String(score),W/2,25);ctx.fillStyle="#fff3aa";ctx.fillText(String(score),W/2,25); }
+    function drawScore() { ctx.textAlign="center";ctx.textBaseline="top";ctx.font="700 42px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.lineWidth=7;ctx.strokeStyle="#552b17";ctx.strokeText(String(score),W/2,25);ctx.fillStyle="#fff3aa";ctx.fillText(String(score),W/2,25); }
     function drawOverlay() {
       ctx.fillStyle="rgba(34,23,18,.36)";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff0b8";ctx.fillRect(54,192,W-108,184);ctx.fillStyle="#8d4f26";ctx.fillRect(54,192,W-108,10);ctx.fillRect(54,366,W-108,10);ctx.fillRect(54,192,10,184);ctx.fillRect(W-64,192,10,184);
       const preparing = status === "playing" && runFrame < startBufferFrames;
-      ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#5d2f18";ctx.font="700 28px ui-monospace, monospace";ctx.fillText(preparing?"准备":status==="ready"?"像素飞鸟":status==="paused"?"已暂停":"游戏结束",W/2,238);
-      ctx.font="700 18px ui-monospace, monospace";ctx.fillText(preparing?"开局保护中":`本局 ${score}   最高 ${best}`,W/2,282);ctx.fillStyle="#2e7d36";ctx.fillRect(118,314,196,34);ctx.fillStyle="#f7ffe8";ctx.font="700 17px ui-monospace, monospace";ctx.fillText(preparing?"看准节奏再飞":status==="paused"?"Esc 继续游戏":"点击 / 空格 起飞",W/2,331);
+      ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#5d2f18";ctx.font="700 28px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.fillText(preparing?"准备":status==="ready"?"像素飞鸟":status==="paused"?"已暂停":"游戏结束",W/2,238);
+      ctx.font="700 18px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.fillText(preparing?"开局保护中":`本局 ${score}   最高 ${best}`,W/2,282);ctx.fillStyle="#2e7d36";ctx.fillRect(118,314,196,34);ctx.fillStyle="#f7ffe8";ctx.font="700 17px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.fillText(preparing?"看准节奏再飞":status==="paused"?"Esc 继续游戏":"点击 / 空格 起飞",W/2,331);
     }
 
     function getAudioContext() { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; if (!audioContext) audioContext = new C(); if (audioContext.state === "suspended") audioContext.resume(); return audioContext; }
@@ -578,18 +616,19 @@
       rainSource.connect(rainFilter);rainFilter.connect(rainGain);rainGain.connect(ac.destination);windSource.connect(windFilter);windFilter.connect(windGain);windGain.connect(ac.destination);
       rainSource.start(); windSource.start(); ambient={rainGain,windGain,rainFilter,windFilter};
     }
-    function updateAmbient(w) { if (!audioContext || !ambient) return; const rain=weatherAmount(w,"rainy"), wind=Math.max(weatherAmount(w,"windy"),weatherAmount(w,"snowy")*.35), now=audioContext.currentTime; ambient.rainGain.gain.setTargetAtTime(.001+rain*.013,now,.8); ambient.windGain.gain.setTargetAtTime(.001+wind*.009,now,.9); }
+    function outputVolume(vol) { return soundEnabled ? vol * masterVolume : .0001; }
+    function updateAmbient(w) { if (!audioContext || !ambient) return; const rain=weatherAmount(w,"rainy"), wind=Math.max(weatherAmount(w,"windy"),weatherAmount(w,"snowy")*.35), now=audioContext.currentTime; ambient.rainGain.gain.setTargetAtTime(outputVolume(.001+rain*.013),now,.8); ambient.windGain.gain.setTargetAtTime(outputVolume(.001+wind*.009),now,.9); }
     function weatherAmount(w,m){return (w.current===m?1-w.blend:0)+(w.next===m?w.blend:0);}
     function noise(ac,dur,intensity){const b=ac.createBuffer(1,ac.sampleRate*dur,ac.sampleRate),data=b.getChannelData(0);let p=0;for(let i=0;i<data.length;i++){const white=Math.random()*2-1;p=p*.86+white*.14;data[i]=(white*.55+p*.45)*intensity;}return b;}
-    function playFlap(){const ac=getAudioContext(); if(!ac)return; const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="square";o.frequency.setValueAtTime(520,now);o.frequency.exponentialRampToValueAtTime(880,now+.055);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(.09,now+.008);g.gain.exponentialRampToValueAtTime(.001,now+.09);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.1);}
+    function playFlap(){const ac=getAudioContext(); if(!ac||!soundEnabled)return; const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="square";o.frequency.setValueAtTime(520,now);o.frequency.exponentialRampToValueAtTime(880,now+.055);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(outputVolume(.09),now+.008);g.gain.exponentialRampToValueAtTime(.001,now+.09);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.1);}
     function playScore(){const ac=getAudioContext();if(!ac)return;tone(ac,880,0,.09,.07,"sine");}
     function playMilestone(){const ac=getAudioContext();if(!ac)return;tone(ac,784,0,.08,.07,"triangle");tone(ac,1046,.075,.1,.08,"triangle");tone(ac,1568,.16,.16,.06,"sine");}
     function playRecord(delay=0){const ac=getAudioContext();if(!ac)return;tone(ac,659,delay,.07,.05,"sine");tone(ac,988,delay+.07,.11,.06,"sine");}
     function playNpcCheer(v){if(!audioContext)return;const p=[[740,920],[660,880],[820,1040],[590,760]][v%4];tone(audioContext,p[0],0,.045,.016,"triangle");tone(audioContext,p[1],.055,.05,.014,"triangle");}
     function playFruit(type){const ac=getAudioContext();if(!ac)return;const base=type==="boost"?1046:type==="shield"?784:698;tone(ac,base,0,.055,.045,"triangle");tone(ac,base*1.25,.055,.08,.04,"sine");}
     function playBreak(){const ac=getAudioContext();if(!ac)return;tone(ac,220,0,.06,.035,"square");tone(ac,330,.045,.08,.03,"triangle");}
-    function playCrash(){const ac=getAudioContext();if(!ac)return;const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="sawtooth";o.frequency.setValueAtTime(180,now);o.frequency.exponentialRampToValueAtTime(52,now+.28);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(.16,now+.02);g.gain.exponentialRampToValueAtTime(.001,now+.32);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.34);}
-    function tone(ac,f,delay,dur,vol,type){const s=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(.001,s);g.gain.exponentialRampToValueAtTime(vol,s+.012);g.gain.exponentialRampToValueAtTime(.001,s+dur);o.connect(g);g.connect(ac.destination);o.start(s);o.stop(s+dur+.02);}
+    function playCrash(){const ac=getAudioContext();if(!ac||!soundEnabled)return;const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="sawtooth";o.frequency.setValueAtTime(180,now);o.frequency.exponentialRampToValueAtTime(52,now+.28);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(outputVolume(.16),now+.02);g.gain.exponentialRampToValueAtTime(.001,now+.32);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.34);}
+    function tone(ac,f,delay,dur,vol,type){if(!soundEnabled)return;const s=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(.001,s);g.gain.exponentialRampToValueAtTime(outputVolume(vol),s+.012);g.gain.exponentialRampToValueAtTime(.001,s+dur);o.connect(g);g.connect(ac.destination);o.start(s);o.stop(s+dur+.02);}
     function clamp(v,min,max){return Math.min(Math.max(v,min),max);} function smoothStep(v){return v*v*(3-2*v);} function intersects(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;}
     function handlePrimaryInput(event) {
       if (event) event.preventDefault();
@@ -599,6 +638,18 @@
       flap();
     }
     const canvasButton = document.getElementById("canvasButton");
+    soundToggle.addEventListener("change", (event) => {
+      soundEnabled = event.target.checked;
+      localStorage.setItem("pixel-bird-sound", soundEnabled ? "on" : "off");
+      updateAmbient(getWeather(frame));
+      syncUi();
+    });
+    volumeSlider.addEventListener("input", (event) => {
+      masterVolume = clamp(Number(event.target.value) / 100, 0, 1);
+      localStorage.setItem("pixel-bird-volume", String(masterVolume));
+      updateAmbient(getWeather(frame));
+      syncUi();
+    });
     if (window.PointerEvent) {
       canvasButton.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
       startBtn.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
@@ -616,3 +667,5 @@
   </script>
 </body>
 </html>
+
+
