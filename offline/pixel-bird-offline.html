@@ -19,12 +19,12 @@
     }
     .game { width: min(100%, 520px, calc((100vh - 118px) * .675)); display: grid; gap: 6px; position: relative; }
     .scorebar { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; }
-    .scorebar > div, .scorebar > button, .skin-group {
+    .scorebar > div, .scorebar > button, .skin-group, .name-group, .audio-panel {
       border: 3px solid #552b17; border-radius: 7px; background: #fff0b8;
       box-shadow: inset -3px -3px 0 rgba(117,70,28,.18), 0 3px 0 #7b5125;
     }
     .scorebar > div { min-height: 42px; display: grid; place-items: center; padding: 4px 8px; }
-    .scorebar span, .skin-group span { font-size: 12px; font-weight: 900; line-height: 1; }
+    .scorebar span, .skin-group span, .name-group span, .audio-panel span { font-size: 12px; font-weight: 900; line-height: 1; }
     .scorebar strong { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: 20px; line-height: 1; }
     button { font: inherit; color: inherit; -webkit-appearance: none; appearance: none; touch-action: manipulation; }
     button:focus { outline: none; }
@@ -58,16 +58,21 @@
       box-shadow: 0 6px 0 #7b5125, 0 12px 20px rgba(60,35,16,.2); touch-action: none;
     }
     canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
-    .audio-panel {
-      position: absolute; right: -76px; top: 104px; width: 70px; display: grid; gap: 6px; padding: 7px 6px;
-      border: 3px solid #552b17; border-radius: 7px; background: #fff0b8;
-      box-shadow: inset -3px -3px 0 rgba(117,70,28,.18), 0 3px 0 #7b5125;
-      font-size: 10px; font-weight: 900; line-height: 1; z-index: 3;
+    .name-group {
+      min-height: 40px; display: grid; grid-template-columns: 42px 1fr; gap: 6px; align-items: center; padding: 4px;
     }
-    .audio-panel.hidden { display: none; }
-    .audio-panel label { display: grid; gap: 4px; place-items: center; }
+    .name-group input {
+      width: 100%; min-width: 0; height: 28px; border: 2px solid #7b5125; border-radius: 5px;
+      background: #fff8d9; color: #5d2f18; font: 900 13px "Microsoft YaHei", "PingFang SC", sans-serif;
+      text-align: center; outline: none;
+    }
+    .audio-panel {
+      min-height: 40px; display: grid; grid-template-columns: 42px 1fr; gap: 6px; align-items: center; padding: 4px;
+      font-size: 10px; font-weight: 900; line-height: 1;
+    }
+    .hidden { display: none !important; }
+    .audio-panel label { display: flex; gap: 6px; align-items: center; justify-content: center; }
     .audio-panel input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2e7d36; }
-    .audio-panel input[type="range"] { width: 58px; accent-color: #f26f3b; }
     @media (max-width: 420px) {
       body { padding: 6px; }
       .game { width: min(100%, calc((100vh - 96px) * .675)); gap: 5px; }
@@ -76,10 +81,10 @@
       .scorebar > div { min-height: 38px; }
       .skinbar { grid-template-columns: 1fr; }
       .skin-group { min-height: 34px; grid-template-columns: 28px 1fr; }
+      .name-group, .audio-panel { min-height: 34px; grid-template-columns: 34px 1fr; }
       .skin-group > span { font-size: 10px; }
       .segmented button { min-height: 24px; font-size: 10px; }
       .swatches button { width: 22px; height: 22px; }
-      .audio-panel { right: 8px; top: 92px; opacity: .94; }
     }
   </style>
 </head>
@@ -99,14 +104,18 @@
         <span>颜色</span>
         <div class="swatches" id="colorButtons"></div>
       </div>
+      <label class="name-group">
+        <span>名字</span>
+        <input id="playerNameInput" type="text" maxlength="8" value="小飞鸟" aria-label="给小鸟命名" />
+      </label>
+      <section class="audio-panel" id="audioPanel" aria-label="声音设置">
+        <span>音效</span>
+        <label><input id="soundToggle" type="checkbox" checked />开启</label>
+      </section>
     </section>
     <button class="canvas-button" id="canvasButton" type="button" aria-label="点击让小鸟飞起来">
       <canvas id="game" width="432" height="640"></canvas>
     </button>
-    <section class="audio-panel" id="audioPanel" aria-label="声音设置">
-      <label><span>音效</span><input id="soundToggle" type="checkbox" checked /></label>
-      <label><span>音量</span><input id="volumeSlider" type="range" min="0" max="100" value="78" /></label>
-    </section>
   </main>
   <script>
     const W = 432, H = 640, birdX = 112, birdSize = 34, pipeW = 66, pipeGap = 174, groundH = 86;
@@ -125,12 +134,11 @@
     let status = "ready", score = 0, best = Number(localStorage.getItem("pixel-bird-offline-best") || 0);
     let birdY = 220, velocity = 0, pipes = [], fruits = [], arrows = [], effects = [], frame = 0, runFrame = 0, birdKind = "chick", palette = palettes[0];
     let shieldCharges = 0, shieldGraceUntil = 0, boostUntil = 0, boostPipesLeft = 0, destroyCharges = 0, audioContext = null, ambient = null, npcCheerFrame = -999, lastTouchAt = 0;
-    let soundEnabled = localStorage.getItem("pixel-bird-sound") !== "off", masterVolume = Number(localStorage.getItem("pixel-bird-volume") || .78);
-    if (!Number.isFinite(masterVolume)) masterVolume = .78;
-    masterVolume = clamp(masterVolume, 0, 1);
+    let soundEnabled = localStorage.getItem("pixel-bird-sound") !== "off", masterVolume = .78;
+    let playerName = localStorage.getItem("pixel-bird-player-name") || "小飞鸟";
     const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
     const scoreEl = document.getElementById("score"), bestEl = document.getElementById("best"), startBtn = document.getElementById("startBtn");
-    const audioPanel = document.getElementById("audioPanel"), soundToggle = document.getElementById("soundToggle"), volumeSlider = document.getElementById("volumeSlider");
+    const audioPanel = document.getElementById("audioPanel"), soundToggle = document.getElementById("soundToggle"), playerNameInput = document.getElementById("playerNameInput");
 
     function syncUi() {
       scoreEl.textContent = score;
@@ -138,7 +146,8 @@
       startBtn.textContent = status === "ready" ? "点击开始" : status === "playing" ? "保持节奏" : status === "paused" ? "继续" : "再来一局";
       updateAudioPanel();
       soundToggle.checked = soundEnabled;
-      volumeSlider.value = String(Math.round(masterVolume * 100));
+      playerNameInput.value = playerName;
+      playerNameInput.disabled = status === "playing";
       [...document.querySelectorAll("[data-kind]")].forEach((b) => b.classList.toggle("active", b.dataset.kind === birdKind));
       [...document.querySelectorAll("[data-color]")].forEach((b) => b.classList.toggle("active", b.dataset.color === palette.id));
     }
@@ -163,6 +172,7 @@
 
     function updateAudioPanel() {
       audioPanel.classList.toggle("hidden", status === "playing" && runFrame >= startBufferFrames);
+      playerNameInput.closest(".name-group").classList.toggle("hidden", status === "playing" && runFrame >= startBufferFrames);
     }
 
     function resetGame() {
@@ -603,8 +613,11 @@
     function drawOverlay() {
       ctx.fillStyle="rgba(34,23,18,.36)";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff0b8";ctx.fillRect(54,192,W-108,184);ctx.fillStyle="#8d4f26";ctx.fillRect(54,192,W-108,10);ctx.fillRect(54,366,W-108,10);ctx.fillRect(54,192,10,184);ctx.fillRect(W-64,192,10,184);
       const preparing = status === "playing" && runFrame < startBufferFrames;
-      ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#5d2f18";ctx.font="700 28px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.fillText(preparing?"准备":status==="ready"?"像素飞鸟":status==="paused"?"已暂停":"游戏结束",W/2,238);
-      ctx.font="700 18px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.fillText(preparing?"开局保护中":`本局 ${score}   最高 ${best}`,W/2,282);ctx.fillStyle="#2e7d36";ctx.fillRect(118,314,196,34);ctx.fillStyle="#f7ffe8";ctx.font="700 17px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.fillText(preparing?"看准节奏再飞":status==="paused"?"Esc 继续游戏":"点击 / 空格 起飞",W/2,331);
+      ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#5d2f18";ctx.font="700 28px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+      ctx.fillText(preparing?"准备":status==="ready"?"像素飞鸟":status==="paused"?"已暂停":`${playerName}，再接再厉！`,W/2,230);
+      ctx.font="700 17px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+      ctx.fillText(status==="ended"?"May the force be with you！":preparing?"开局保护中":`本局 ${score}   最高 ${best}`,W/2,274);
+      ctx.fillStyle="#2e7d36";ctx.fillRect(118,314,196,34);ctx.fillStyle="#f7ffe8";ctx.font="700 17px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.fillText(preparing?"看准节奏再飞":status==="paused"?"Esc 继续游戏":"点击 / 空格 起飞",W/2,331);
     }
 
     function getAudioContext() { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; if (!audioContext) audioContext = new C(); if (audioContext.state === "suspended") audioContext.resume(); return audioContext; }
@@ -644,11 +657,10 @@
       updateAmbient(getWeather(frame));
       syncUi();
     });
-    volumeSlider.addEventListener("input", (event) => {
-      masterVolume = clamp(Number(event.target.value) / 100, 0, 1);
-      localStorage.setItem("pixel-bird-volume", String(masterVolume));
-      updateAmbient(getWeather(frame));
-      syncUi();
+    playerNameInput.addEventListener("input", (event) => {
+      const nextName = event.target.value.trim().slice(0, 8) || "小飞鸟";
+      playerName = nextName;
+      localStorage.setItem("pixel-bird-player-name", playerName);
     });
     if (window.PointerEvent) {
       canvasButton.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
