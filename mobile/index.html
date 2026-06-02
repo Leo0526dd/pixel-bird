@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=overlays-content" />
   <title>像素飞鸟</title>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -68,9 +68,28 @@
     }
     .audio-panel {
       min-height: 40px; display: grid; grid-template-columns: 42px 1fr; gap: 6px; align-items: center; padding: 4px;
-      font-size: 10px; font-weight: 900; line-height: 1;
+      font-size: 10px; font-weight: 900; line-height: 1; grid-column: 2;
     }
     .hidden { display: none !important; }
+    .name-modal {
+      position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 18px;
+      background: rgba(34,23,18,.42);
+    }
+    .name-card {
+      width: min(92vw, 340px); display: grid; gap: 12px; padding: 18px;
+      border: 4px solid #552b17; border-radius: 8px; background: #fff0b8;
+      box-shadow: inset -4px -4px 0 rgba(117,70,28,.18), 0 8px 0 #7b5125;
+      text-align: center;
+    }
+    .name-card h1 { margin: 0; font-size: 22px; line-height: 1.15; color: #5d2f18; }
+    .name-card input {
+      height: 42px; border: 3px solid #7b5125; border-radius: 6px; background: #fff8d9; color: #5d2f18;
+      font: 900 18px "Microsoft YaHei", "PingFang SC", sans-serif; text-align: center; outline: none;
+    }
+    .name-card button {
+      height: 40px; border: 3px solid #552b17; border-radius: 6px; background: #2e7d36; color: #f7ffe8;
+      font-weight: 900; box-shadow: 0 3px 0 #7b5125;
+    }
     .audio-panel label { display: flex; gap: 6px; align-items: center; justify-content: center; }
     .audio-panel input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2e7d36; }
     @media (max-width: 420px) {
@@ -82,6 +101,7 @@
       .skinbar { grid-template-columns: 1fr; }
       .skin-group { min-height: 34px; grid-template-columns: 28px 1fr; }
       .name-group, .audio-panel { min-height: 34px; grid-template-columns: 34px 1fr; }
+      .audio-panel { grid-column: auto; }
       .skin-group > span { font-size: 10px; }
       .segmented button { min-height: 24px; font-size: 10px; }
       .swatches button { width: 22px; height: 22px; }
@@ -104,10 +124,6 @@
         <span>颜色</span>
         <div class="swatches" id="colorButtons"></div>
       </div>
-      <label class="name-group">
-        <span>名字</span>
-        <input id="playerNameInput" type="text" maxlength="8" value="小飞鸟" aria-label="给小鸟命名" />
-      </label>
       <section class="audio-panel" id="audioPanel" aria-label="声音设置">
         <span>音效</span>
         <label><input id="soundToggle" type="checkbox" checked />开启</label>
@@ -117,6 +133,13 @@
       <canvas id="game" width="432" height="640"></canvas>
     </button>
   </main>
+  <section class="name-modal" id="nameModal" aria-label="设置名字">
+    <div class="name-card">
+      <h1>你想叫什么？</h1>
+      <input id="playerNameInput" type="text" maxlength="8" value="小飞鸟" aria-label="你想叫什么？" />
+      <button id="confirmNameBtn" type="button">确定</button>
+    </div>
+  </section>
   <script>
     const W = 432, H = 640, birdX = 112, birdSize = 34, pipeW = 66, pipeGap = 174, groundH = 86;
     const gravity = 0.36, flapPower = -7.15, pipeSpeed = 2.18, pipeSpacing = 246, readyFrames = 84;
@@ -136,9 +159,11 @@
     let shieldCharges = 0, shieldGraceUntil = 0, boostUntil = 0, boostPipesLeft = 0, destroyCharges = 0, audioContext = null, ambient = null, npcCheerFrame = -999, lastTouchAt = 0;
     let soundEnabled = localStorage.getItem("pixel-bird-sound") !== "off", masterVolume = .78;
     let playerName = localStorage.getItem("pixel-bird-player-name") || "小飞鸟";
+    let hasNamed = false;
     const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
     const scoreEl = document.getElementById("score"), bestEl = document.getElementById("best"), startBtn = document.getElementById("startBtn");
     const audioPanel = document.getElementById("audioPanel"), soundToggle = document.getElementById("soundToggle"), playerNameInput = document.getElementById("playerNameInput");
+    const nameModal = document.getElementById("nameModal"), confirmNameBtn = document.getElementById("confirmNameBtn");
 
     function syncUi() {
       scoreEl.textContent = score;
@@ -147,7 +172,7 @@
       updateAudioPanel();
       soundToggle.checked = soundEnabled;
       playerNameInput.value = playerName;
-      playerNameInput.disabled = status === "playing";
+      nameModal.classList.toggle("hidden", hasNamed);
       [...document.querySelectorAll("[data-kind]")].forEach((b) => b.classList.toggle("active", b.dataset.kind === birdKind));
       [...document.querySelectorAll("[data-color]")].forEach((b) => b.classList.toggle("active", b.dataset.color === palette.id));
     }
@@ -172,7 +197,28 @@
 
     function updateAudioPanel() {
       audioPanel.classList.toggle("hidden", status === "playing" && runFrame >= startBufferFrames);
-      playerNameInput.closest(".name-group").classList.toggle("hidden", status === "playing" && runFrame >= startBufferFrames);
+    }
+
+    function normalizeName() {
+      playerName = playerNameInput.value.trim().slice(0, 8) || "小飞鸟";
+      playerNameInput.value = playerName;
+      localStorage.setItem("pixel-bird-player-name", playerName);
+    }
+
+    function restoreViewport() {
+      requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      });
+    }
+
+    function confirmName() {
+      normalizeName();
+      hasNamed = true;
+      playerNameInput.blur();
+      restoreViewport();
+      syncUi();
     }
 
     function resetGame() {
@@ -645,6 +691,11 @@
     function clamp(v,min,max){return Math.min(Math.max(v,min),max);} function smoothStep(v){return v*v*(3-2*v);} function intersects(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;}
     function handlePrimaryInput(event) {
       if (event) event.preventDefault();
+      if (!hasNamed) {
+        nameModal.classList.remove("hidden");
+        playerNameInput.focus();
+        return;
+      }
       const now = performance.now();
       if (now - lastTouchAt < 140) return;
       lastTouchAt = now;
@@ -662,6 +713,26 @@
       playerName = nextName;
       localStorage.setItem("pixel-bird-player-name", playerName);
     });
+    playerNameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        confirmName();
+      }
+    });
+    playerNameInput.addEventListener("blur", restoreViewport);
+    confirmNameBtn.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      confirmName();
+    }, { passive: false });
+    confirmNameBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      confirmName();
+    });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => {
+        if (document.activeElement !== playerNameInput) restoreViewport();
+      });
+    }
     if (window.PointerEvent) {
       canvasButton.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
       startBtn.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
