@@ -765,9 +765,13 @@
     }
 
     function createFruit(x, seed) {
-      const types = ["shield", "boost", "break"];
-      const type = types[seed % types.length];
-      const y = clamp(164 + ((seed * 97) % 250), 118, H - groundH - 116);
+      const roll = Math.abs(Math.sin((seed + score * 13.7) * 12.9898) * 43758.5453);
+      const types = roll % 1 < .38 ? ["shield", "boost", "break"] : roll % 1 < .68 ? ["boost", "break", "shield"] : ["break", "shield", "boost"];
+      const type = types[Math.floor(roll * 10) % types.length];
+      const nearestPipe = pipes.reduce((best, pipe) => Math.abs(pipe.x - x) < Math.abs((best?.x || 9999) - x) ? pipe : best, null);
+      const baseY = nearestPipe ? nearestPipe.gapY : 192 + (roll % 1) * 190;
+      const jitter = ((Math.sin(seed * 8.31 + frame * .017) + Math.cos(seed * 3.77)) * 18);
+      const y = clamp(baseY + jitter, 136, H - groundH - 132);
       return { x, y, type, taken: false, seed };
     }
 
@@ -892,7 +896,11 @@
       }
       if (fruits[0] && fruits[0].x < -40) fruits.shift();
       const lastFruitX = fruits.length ? fruits[fruits.length - 1].x : W;
-      if (lastFruitX < W + pipeSpacing * 3.2) fruits.push(createFruit(lastFruitX + pipeSpacing * (3.1 + (score % 2) * .6), frame + score));
+      if (lastFruitX < W + pipeSpacing * 3.2) {
+        const fruitSeed = frame + score * 17 + fruits.length * 31;
+        const spacingRoll = Math.abs(Math.sin(fruitSeed * 9.17) * 43758.5453) % 1;
+        fruits.push(createFruit(lastFruitX + pipeSpacing * (2.65 + spacingRoll * 1.05), fruitSeed));
+      }
       arrows = arrows.filter((arrow) => arrow.x > -70);
       updateBosses();
       const twinBossActive = bosses.some((boss) => boss.scoreValue === 150 && !boss.done);
@@ -902,27 +910,31 @@
       const hitCeiling = birdRect.y <= 0;
       const hitGround = birdRect.y + birdRect.height >= floorY;
       for (const fruit of fruits) {
-        if (!fruit.taken && intersects(birdRect, { x: fruit.x - 13, y: fruit.y - 13, width: 26, height: 26 })) collectFruit(fruit);
+        if (!fruit.taken && intersects(birdRect, { x: fruit.x - 18, y: fruit.y - 18, width: 36, height: 36 })) collectFruit(fruit);
       }
       const shieldActive = shieldCharges > 0 || frame < shieldGraceUntil;
       const boostGraceActive = frame < boostGraceUntil;
-      let obstacleHit = false;
+      let obstacleHit = false, obstacleType = "hazard";
       for (const pipe of pipes) {
         const topH = pipe.gapY - pipe.gapSize / 2, bottomY = pipe.gapY + pipe.gapSize / 2, mech = getMechanismRect(pipe);
         if (boosting) continue;
         if (pipe.boostCleared) continue;
         const hitMech = mech && intersects(birdRect, mech);
         if (hitMech && destroyCharges > 0 && !boostGraceActive) { breakMechanism(pipe, mech); continue; }
-        if (intersects(birdRect, { x: pipe.x, y: 0, width: pipeW, height: topH }) ||
-          intersects(birdRect, { x: pipe.x, y: bottomY, width: pipeW, height: floorY - bottomY }) ||
-          hitMech || pipeHazardHit(pipe, birdRect)) {
+        const hitPipeBody = intersects(birdRect, { x: pipe.x, y: 0, width: pipeW, height: topH }) ||
+          intersects(birdRect, { x: pipe.x, y: bottomY, width: pipeW, height: floorY - bottomY });
+        const hitPipeHazard = pipeHazardHit(pipe, birdRect);
+        if (hitPipeBody || hitMech || hitPipeHazard) {
           if (boostGraceActive) pipe.boostCleared = true;
+          obstacleType = hitPipeBody ? "pipe" : "hazard";
           obstacleHit = true;
           break;
         }
       }
       const hitArrow = !boosting && arrows.some((arrow) => intersects(birdRect, getArrowRect(arrow)));
       const hitBossWave = !boosting && bossWaves.some((wave) => intersects(birdRect, getBossWaveRect(wave)));
+      if (!obstacleHit && hitArrow) obstacleType = "hazard";
+      if (!obstacleHit && hitBossWave) obstacleType = "hazard";
       obstacleHit = obstacleHit || hitArrow || hitBossWave;
       if (hitGround || hitCeiling) {
         finishGame();
@@ -930,7 +942,7 @@
         arrows = arrows.filter((arrow) => !intersects(birdRect, getArrowRect(arrow)));
         bossWaves = bossWaves.filter((wave) => !intersects(birdRect, getBossWaveRect(wave)));
       } else if (obstacleHit && shieldActive) {
-        if (shieldCharges > 0) useShield(birdRect);
+        if (shieldCharges > 0) useShield(birdRect, obstacleType === "pipe" ? 3 : 1);
         arrows = arrows.filter((arrow) => !intersects(birdRect, getArrowRect(arrow)));
         bossWaves = bossWaves.filter((wave) => !intersects(birdRect, getBossWaveRect(wave)));
       } else if (obstacleHit) finishGame();
@@ -954,8 +966,8 @@
       playBreak();
     }
 
-    function useShield(rect) {
-      shieldCharges = Math.max(0, shieldCharges - 1);
+    function useShield(rect, cost = 1) {
+      shieldCharges = Math.max(0, shieldCharges - cost);
       shieldGraceUntil = frame + 34;
       velocity = Math.min(velocity, -2.8);
       birdY = clamp(birdY - 7, 54, H - groundH - 70);
@@ -1306,17 +1318,38 @@
 
     function animal(kind, x, y, scale) {
       ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
-      ctx.fillStyle = "rgba(43,23,18,.28)"; ctx.fillRect(-15, -2, 30, 5);
-      if (kind === "rabbit") { ctx.fillStyle = "#f4f0e6"; ctx.fillRect(-11,-24,22,20); ctx.fillRect(-9,-40,5,18); ctx.fillRect(2,-39,5,17); ctx.fillStyle="#d9a1b4"; ctx.fillRect(-7,-35,2,10); ctx.fillRect(4,-34,2,9); ctx.fillStyle="#f4f0e6"; ctx.fillRect(9,-16,9,8); }
-      else if (kind === "cat") { ctx.fillStyle="#f0b05a"; ctx.fillRect(-12,-24,24,20); ctx.fillRect(-10,-32,7,9); ctx.fillRect(3,-32,7,9); ctx.fillStyle="#fff0b8"; ctx.fillRect(-6,-13,13,8); ctx.fillStyle="#6b3d22"; ctx.fillRect(10,-14,13,4); ctx.fillRect(19,-18,4,8); }
-      else if (kind === "pig") { ctx.fillStyle="#f0a2b6"; ctx.fillRect(-13,-23,26,19); ctx.fillRect(-10,-30,7,8); ctx.fillRect(4,-30,7,8); ctx.fillStyle="#ffd1dc"; ctx.fillRect(-17,-16,13,8); ctx.fillStyle="#a85b6a"; ctx.fillRect(-13,-13,3,3); ctx.fillRect(-8,-13,3,3); ctx.fillStyle="#f0a2b6"; ctx.fillRect(10,-14,10,5); }
-      else if (kind === "frog") { ctx.fillStyle="#5fbf62"; ctx.fillRect(-13,-20,26,16); ctx.fillStyle="#daf7b8"; ctx.fillRect(-9,-27,6,7); ctx.fillRect(3,-27,6,7); ctx.fillRect(-7,-12,14,6); }
-      else if (kind === "dog") { ctx.fillStyle="#c9864a"; ctx.fillRect(-13,-23,26,19); ctx.fillStyle="#7b5125"; ctx.fillRect(-15,-26,7,12); ctx.fillRect(7,-26,7,12); ctx.fillRect(11,-14,12,4); ctx.fillStyle="#fff0b8"; ctx.fillRect(-5,-12,11,7); }
-      else if (kind === "fox") { ctx.fillStyle="#e66f2e"; ctx.fillRect(-12,-23,24,19); ctx.fillRect(-9,-32,7,10); ctx.fillRect(3,-32,7,10); ctx.fillStyle="#fff0b8"; ctx.fillRect(-6,-13,14,8); ctx.fillStyle="#e66f2e"; ctx.fillRect(10,-16,15,6); ctx.fillStyle="#fff0b8"; ctx.fillRect(21,-16,4,6); }
-      else if (kind === "panda") { ctx.fillStyle="#f4f0e6"; ctx.fillRect(-13,-24,26,20); ctx.fillStyle="#2d2a2a"; ctx.fillRect(-15,-29,8,8); ctx.fillRect(7,-29,8,8); ctx.fillRect(-8,-16,6,6); ctx.fillRect(3,-16,6,6); ctx.fillRect(10,-13,10,4); }
-      else if (kind === "squirrel") { ctx.fillStyle="#a86432"; ctx.fillRect(-12,-23,24,19); ctx.fillRect(9,-31,9,25); ctx.fillRect(15,-36,8,18); ctx.fillStyle="#e0a15b"; ctx.fillRect(-6,-13,12,8); ctx.fillStyle="#7b5125"; ctx.fillRect(-9,-31,6,8); ctx.fillRect(3,-31,6,8); }
-      else { ctx.fillStyle="#6aa86f"; ctx.fillRect(-12,-18,24,14); ctx.fillStyle="#9ed17f"; ctx.fillRect(-8,-25,16,9); }
-      ctx.fillStyle="#1f1f2a"; ctx.fillRect(-6,-17,3,3); ctx.fillRect(3,-17,3,3); ctx.fillStyle="#fff8d9"; ctx.fillRect(-3,-9,7,3); ctx.restore();
+      ctx.fillStyle = "rgba(43,23,18,.28)"; ctx.fillRect(-18, -2, 36, 5);
+      ctx.fillStyle = "#4b2817"; ctx.fillRect(-12, -5, 5, 5); ctx.fillRect(6, -5, 5, 5);
+      if (kind === "rabbit") {
+        ctx.fillStyle="#f4f0e6"; ctx.fillRect(-13,-25,26,21); ctx.fillRect(-12,-43,6,21); ctx.fillRect(1,-42,6,20); ctx.fillRect(10,-17,9,8);
+        ctx.fillStyle="#d9a1b4"; ctx.fillRect(-10,-38,2,12); ctx.fillRect(3,-37,2,11); ctx.fillRect(-18,-15,8,5);
+      } else if (kind === "cat") {
+        ctx.fillStyle="#f0b05a"; ctx.fillRect(-14,-25,27,21); ctx.fillRect(-12,-35,8,11); ctx.fillRect(4,-35,8,11);
+        ctx.fillStyle="#fff0b8"; ctx.fillRect(-8,-14,15,8); ctx.fillStyle="#6b3d22"; ctx.fillRect(9,-17,14,4); ctx.fillRect(19,-23,4,10); ctx.fillRect(-20,-15,9,5);
+      } else if (kind === "pig") {
+        ctx.fillStyle="#f0a2b6"; ctx.fillRect(-14,-24,28,20); ctx.fillRect(-11,-33,8,10); ctx.fillRect(4,-33,8,10); ctx.fillRect(10,-15,11,6);
+        ctx.fillStyle="#ffd1dc"; ctx.fillRect(-22,-17,14,9); ctx.fillStyle="#a85b6a"; ctx.fillRect(-18,-14,3,3); ctx.fillRect(-13,-14,3,3);
+      } else if (kind === "frog") {
+        ctx.fillStyle="#5fbf62"; ctx.fillRect(-15,-21,30,17); ctx.fillRect(-12,-30,8,9); ctx.fillRect(3,-30,8,9);
+        ctx.fillStyle="#daf7b8"; ctx.fillRect(-8,-13,16,7); ctx.fillStyle="#3a8a44"; ctx.fillRect(-20,-13,8,5);
+      } else if (kind === "dog") {
+        ctx.fillStyle="#c9864a"; ctx.fillRect(-15,-24,30,20); ctx.fillStyle="#7b5125"; ctx.fillRect(-17,-29,8,14); ctx.fillRect(7,-29,8,14); ctx.fillRect(12,-15,13,4);
+        ctx.fillStyle="#fff0b8"; ctx.fillRect(-7,-13,13,7); ctx.fillStyle="#4b2817"; ctx.fillRect(-21,-15,10,5);
+      } else if (kind === "fox") {
+        ctx.fillStyle="#e66f2e"; ctx.fillRect(-14,-24,28,20); ctx.fillRect(-11,-36,8,13); ctx.fillRect(4,-36,8,13); ctx.fillRect(10,-18,16,7);
+        ctx.fillStyle="#fff0b8"; ctx.fillRect(-8,-13,16,8); ctx.fillRect(22,-18,5,7); ctx.fillStyle="#e66f2e"; ctx.fillRect(-22,-16,12,6);
+      } else if (kind === "panda") {
+        ctx.fillStyle="#f4f0e6"; ctx.fillRect(-15,-25,30,21); ctx.fillStyle="#2d2a2a"; ctx.fillRect(-17,-32,9,9); ctx.fillRect(8,-32,9,9); ctx.fillRect(-9,-17,7,7); ctx.fillRect(3,-17,7,7); ctx.fillRect(11,-14,12,5);
+      } else if (kind === "turtle") {
+        ctx.fillStyle="#6aa86f"; ctx.fillRect(-14,-18,28,14); ctx.fillStyle="#9ed17f"; ctx.fillRect(-8,-27,18,12); ctx.fillStyle="#d4b15f"; ctx.fillRect(-5,-30,11,5); ctx.fillStyle="#3a8a44"; ctx.fillRect(-22,-13,10,7); ctx.fillRect(12,-12,9,5);
+      } else if (kind === "squirrel") {
+        ctx.fillStyle="#a86432"; ctx.fillRect(-14,-24,28,20); ctx.fillRect(10,-35,10,31); ctx.fillRect(17,-41,9,21);
+        ctx.fillStyle="#e0a15b"; ctx.fillRect(-7,-14,14,8); ctx.fillStyle="#7b5125"; ctx.fillRect(-11,-34,7,10); ctx.fillRect(4,-34,7,10); ctx.fillRect(-21,-14,9,5);
+      }
+      ctx.fillStyle="#1f1f2a"; ctx.fillRect(-7,-18,3,3); ctx.fillRect(3,-18,3,3);
+      ctx.fillStyle="#fff8d9"; ctx.fillRect(-4,-9,8,3);
+      ctx.fillStyle="#4b2817"; ctx.fillRect(-11,-4,5,5); ctx.fillRect(7,-4,5,5);
+      ctx.restore();
     }
 
     function bubble(x, y, text) {
