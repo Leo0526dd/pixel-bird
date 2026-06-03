@@ -46,6 +46,14 @@
       border: 5px solid #552b17; border-radius: 8px; background: #6ec6f1;
       box-shadow: 0 6px 0 #7b5125, 0 12px 20px rgba(60,35,16,.2); touch-action: none;
     }
+    .side-pause {
+      position: absolute; right: -58px; top: 52%; transform: translateY(-50%);
+      width: 52px; min-height: 74px; border: 4px solid #552b17; border-radius: 9px;
+      background: #fff0b8; color: #5d2f18; font-weight: 900; font-size: 14px; line-height: 1.1;
+      box-shadow: inset -3px -3px 0 rgba(117,70,28,.18), 0 5px 0 #7b5125;
+      cursor: pointer; z-index: 8; touch-action: manipulation;
+    }
+    .side-pause.active { background: #2e7d36; color: #f7ffe8; }
     canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
     .hidden { display: none !important; }
     .name-modal, .modal-layer {
@@ -125,6 +133,7 @@
       .scorebar > div { min-height: 38px; }
       .menu-row { grid-template-columns: 1fr 1fr 1fr auto; gap: 5px; }
       .menu-row button, .sound-chip { min-height: 32px; font-size: 12px; padding: 0 6px; }
+      .side-pause { right: 8px; top: auto; bottom: 18px; transform: none; width: 48px; min-height: 54px; font-size: 12px; }
       .panel-card { padding: 14px; }
       .shop-item { grid-template-columns: 1fr 50px auto; gap: 6px; }
       .shop-preview { width: 48px; height: 40px; }
@@ -148,6 +157,7 @@
     <button class="canvas-button" id="canvasButton" type="button" aria-label="点击让小鸟飞起来">
       <canvas id="game" width="432" height="640"></canvas>
     </button>
+    <button class="side-pause hidden" id="pauseBtn" type="button" aria-label="暂停游戏">暂停</button>
   </main>
   <section class="name-modal" id="nameModal" aria-label="设置名字">
     <div class="name-card">
@@ -236,7 +246,7 @@
     let playerId = getPlayerId(), pipeThemeId = localStorage.getItem("pixel-bird-pipe-theme") || "green", leaderboardClient = null;
     let hasNamed = false;
     const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
-    const scoreEl = document.getElementById("score"), bestEl = document.getElementById("best"), startBtn = document.getElementById("startBtn");
+    const scoreEl = document.getElementById("score"), bestEl = document.getElementById("best"), startBtn = document.getElementById("startBtn"), pauseBtn = document.getElementById("pauseBtn");
     const menuRow = document.getElementById("menuRow"), soundChip = document.getElementById("soundChip"), soundToggle = document.getElementById("soundToggle"), playerNameInput = document.getElementById("playerNameInput");
     const nameModal = document.getElementById("nameModal"), confirmNameBtn = document.getElementById("confirmNameBtn");
     const shopModal = document.getElementById("shopModal"), achievementModal = document.getElementById("achievementModal"), rankModal = document.getElementById("rankModal");
@@ -246,6 +256,9 @@
       scoreEl.textContent = score;
       bestEl.textContent = best;
       startBtn.textContent = status === "ready" ? "点击开始" : status === "playing" ? "保持节奏" : status === "paused" ? "继续" : "再来一局";
+      pauseBtn.textContent = status === "paused" ? "继续" : "暂停";
+      pauseBtn.classList.toggle("hidden", status === "ready" || status === "ended" || !hasNamed);
+      pauseBtn.classList.toggle("active", status === "paused");
       updateAudioPanel();
       soundToggle.checked = soundEnabled;
       playerNameInput.value = playerName;
@@ -761,9 +774,10 @@
 
     function spawnBossForScore(scoreValue) {
       if (!hasBossAtScore(scoreValue) || bosses.some((boss) => boss.scoreValue === scoreValue)) return;
+      const bossName = scoreValue === 50 ? "乌鸦" : "黑凤凰";
       bosses.push({ type: scoreValue === 50 ? "crow" : "darkPhoenix", scoreValue, x: W + 70, y: scoreValue === 50 ? 168 : 226, shotsLeft: 5, nextShot: frame + 70, fade: 0, done: false });
-      effects.push({ kind: "stage", x: W / 2, y: 92, start: frame, life: 120, text: scoreValue === 50 ? "BOSS 乌鸦" : "BOSS 黑凤凰" });
-      playMilestone();
+      effects.push({ kind: "bossIntro", x: W / 2, y: 154, start: frame, life: 170, text: `${bossName}来袭`, sub: "躲避声波，坚持5次" });
+      playBossIntro(scoreValue === 100);
     }
 
     function updateBosses() {
@@ -884,7 +898,7 @@
         if (boosting) continue;
         if (pipe.boostCleared) continue;
         const hitMech = mech && intersects(birdRect, mech);
-        if (hitMech && destroyCharges > 0) { breakMechanism(pipe, mech); continue; }
+        if (hitMech && destroyCharges > 0 && !boostGraceActive) { breakMechanism(pipe, mech); continue; }
         if (intersects(birdRect, { x: pipe.x, y: 0, width: pipeW, height: topH }) ||
           intersects(birdRect, { x: pipe.x, y: bottomY, width: pipeW, height: floorY - bottomY }) ||
           hitMech || pipeHazardHit(pipe, birdRect)) {
@@ -1156,6 +1170,21 @@
         if (e.kind === "stage") {
           ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "700 20px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
           ctx.lineWidth = 5; ctx.strokeStyle = "#552b17"; ctx.strokeText(e.text, 0, 0); ctx.fillStyle = "#fff3aa"; ctx.fillText(e.text, 0, 0);
+        } else if (e.kind === "bossIntro") {
+          const pulse = Math.sin(frame / 5) * 3;
+          ctx.globalAlpha = Math.min(1, alpha * 2);
+          ctx.fillStyle = "rgba(43, 23, 18, .86)";
+          ctx.fillRect(-178, -42 + pulse, 356, 84);
+          ctx.fillStyle = "#7c1732";
+          ctx.fillRect(-170, -34 + pulse, 340, 68);
+          ctx.fillStyle = "#f26f3b";
+          ctx.fillRect(-156, -24 + pulse, 312, 8);
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.font = "900 25px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+          ctx.lineWidth = 5; ctx.strokeStyle = "#2b1712"; ctx.strokeText(e.text, 0, -2 + pulse);
+          ctx.fillStyle = "#fff3aa"; ctx.fillText(e.text, 0, -2 + pulse);
+          ctx.font = "700 13px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+          ctx.fillStyle = "#fff8d9"; ctx.fillText(e.sub, 0, 24 + pulse);
         } else if (e.kind === "achievement") {
           const slide = Math.min(1, Math.max(0, t * 5));
           ctx.globalAlpha = Math.min(1, alpha * 1.8);
@@ -1339,6 +1368,7 @@
     function playFruit(type){const ac=getAudioContext();if(!ac)return;const base=type==="boost"?1046:type==="shield"?784:698;tone(ac,base,0,.055,.045,"triangle");tone(ac,base*1.25,.055,.08,.04,"sine");}
     function playBreak(){const ac=getAudioContext();if(!ac)return;tone(ac,220,0,.06,.035,"square");tone(ac,330,.045,.08,.03,"triangle");}
     function playBossWave(){const ac=getAudioContext();if(!ac)return;tone(ac,160,0,.12,.035,"sawtooth");tone(ac,110,.08,.16,.025,"sine");}
+    function playBossIntro(stronger=false){const ac=getAudioContext();if(!ac||!soundEnabled)return;const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="sawtooth";o.frequency.setValueAtTime(stronger?72:88,now);o.frequency.exponentialRampToValueAtTime(stronger?42:54,now+.72);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(outputVolume(stronger?.13:.1),now+.05);g.gain.exponentialRampToValueAtTime(.001,now+.82);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.86);tone(ac,stronger?196:174,.12,.12,.04,"triangle");tone(ac,stronger?147:130,.34,.18,.045,"sawtooth");tone(ac,stronger?98:110,.58,.2,.04,"sine");}
     function playCrash(){const ac=getAudioContext();if(!ac||!soundEnabled)return;const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="sawtooth";o.frequency.setValueAtTime(180,now);o.frequency.exponentialRampToValueAtTime(52,now+.28);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(outputVolume(.16),now+.02);g.gain.exponentialRampToValueAtTime(.001,now+.32);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.34);}
     function tone(ac,f,delay,dur,vol,type){if(!soundEnabled)return;const s=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(.001,s);g.gain.exponentialRampToValueAtTime(outputVolume(vol),s+.012);g.gain.exponentialRampToValueAtTime(.001,s+dur);o.connect(g);g.connect(ac.destination);o.start(s);o.stop(s+dur+.02);}
     function clamp(v,min,max){return Math.min(Math.max(v,min),max);} function smoothStep(v){return v*v*(3-2*v);} function intersects(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;}
@@ -1399,11 +1429,14 @@
     if (window.PointerEvent) {
       canvasButton.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
       startBtn.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
+      pauseBtn.addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); togglePause(); }, { passive: false });
     } else {
       canvasButton.addEventListener("touchstart", handlePrimaryInput, { passive: false });
       startBtn.addEventListener("touchstart", handlePrimaryInput, { passive: false });
+      pauseBtn.addEventListener("touchstart", (event) => { event.preventDefault(); event.stopPropagation(); togglePause(); }, { passive: false });
       canvasButton.addEventListener("mousedown", handlePrimaryInput, { passive: false });
       startBtn.addEventListener("mousedown", handlePrimaryInput, { passive: false });
+      pauseBtn.addEventListener("mousedown", (event) => { event.preventDefault(); event.stopPropagation(); togglePause(); }, { passive: false });
     }
     document.addEventListener("touchmove", (event) => event.preventDefault(), { passive: false });
     document.addEventListener("gesturestart", (event) => event.preventDefault());
