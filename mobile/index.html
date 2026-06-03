@@ -327,7 +327,7 @@
         randomRange: 76 + ramp50 * 22 + ramp100 * 28,
         wind: scoreValue >= 100 ? (.018 + ramp100 * .012) : 0,
         movingChance: scoreValue >= 50 ? clamp((scoreValue - 50) / 120, 0, .28) : 0,
-        arrowRate: scoreValue >= 100 ? 260 : scoreValue >= 50 ? 280 : 320
+        arrowRate: scoreValue >= 100 ? 380 : scoreValue >= 50 ? 340 : 420
       };
     }
 
@@ -805,9 +805,9 @@
         const lane = Math.floor(Math.abs(Math.sin(seed * 4.71) * 1000)) % 5;
         const baseY = 154 + lane * 50;
         const wobble = Math.sin(seed * 1.93) * 10;
-        return { x: W + 44, y: clamp(baseY + wobble, 148, H - groundH - 112), speed: 2.52 + (seed % 2) * .14, seed };
+        return { x: W + 44, y: clamp(baseY + wobble, 148, H - groundH - 112), speed: 3.05, vx: 3.05, seed, born: frame };
       }
-      return { x: W + 44, y: clamp(142 + ((seed * 83) % 300), 110, H - groundH - 82), speed: 2.75 + (seed % 3) * .22, seed };
+      return { x: W + 44, y: clamp(142 + ((seed * 83) % 300), 110, H - groundH - 82), speed: 3.15, vx: 3.15, seed, born: frame };
     }
 
     function spawnBossForScore(scoreValue) {
@@ -920,8 +920,10 @@
         }
       }
       for (const fruit of fruits) fruit.x -= speed;
-      const arrowMoveScale = Math.max(speedScale, .85);
-      for (const arrow of arrows) arrow.x -= Math.max(arrow.speed || 2.45, 2.35) * arrowMoveScale;
+      for (const arrow of arrows) {
+        arrow.x -= arrow.vx || arrow.speed || 3.05;
+        arrow.flyFrame = (arrow.flyFrame || 0) + 1;
+      }
       if (pipes[0] && pipes[0].x + pipeW < -16) {
         pipes.shift();
         const last = pipes[pipes.length - 1];
@@ -937,7 +939,7 @@
       arrows = arrows.filter((arrow) => arrow.x > -70);
       updateBosses();
       const twinBossActive = bosses.some((boss) => boss.scoreValue === 150 && !boss.done);
-      if (score >= 50 && !twinBossActive && frame % (isChallengeSegment(score) ? 220 : difficulty.arrowRate) === 0 && activeSpecialThreatCount() < 2 && arrows.length < 2) arrows.push(createArrow(frame + score, score));
+      if (score >= 50 && !twinBossActive && frame % (isChallengeSegment(score) ? 300 : difficulty.arrowRate) === 0 && activeSpecialThreatCount() === 0 && arrows.length < 1) arrows.push(createArrow(frame + score, score));
       const birdRect = { x: birdX - birdSize / 2 + 4, y: birdY - birdSize / 2 + 3, width: birdSize - 8, height: birdSize - 6 };
       const floorY = H - groundH;
       const hitCeiling = birdRect.y <= 0;
@@ -1156,9 +1158,10 @@
     function drawArrows() {
       for (const arrow of arrows) {
         ctx.save(); ctx.translate(arrow.x, arrow.y);
+        const flutter = Math.sin((arrow.flyFrame || frame) / 4) * 2;
         ctx.fillStyle = "#5d2f18"; ctx.fillRect(-26, -3, 42, 6);
         ctx.fillStyle = "#d8dee2"; ctx.fillRect(10, -6, 16, 12);
-        ctx.fillStyle = "#8d4f26"; ctx.fillRect(-34, -8, 8, 16); ctx.fillRect(-42, -5, 8, 10);
+        ctx.fillStyle = "#8d4f26"; ctx.fillRect(-34, -8 + flutter, 8, 16); ctx.fillRect(-42, -5 - flutter, 8, 10);
         ctx.restore();
       }
     }
