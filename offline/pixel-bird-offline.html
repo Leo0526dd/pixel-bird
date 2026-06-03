@@ -181,6 +181,7 @@
     const gravity = 0.36, flapPower = -7.15, pipeSpeed = 2.18, pipeSpacing = 246, readyFrames = 84;
     const isWechat = /MicroMessenger/i.test(navigator.userAgent);
     const startBufferFrames = isWechat ? 112 : readyFrames;
+    const boostExitGraceFrames = 18;
     const weatherCycle = ["clear", "cloudy", "rainy", "windy", "snowy"];
     const weatherDurationFrames = 1800, weatherBlendFrames = 520;
     const kinds = [
@@ -819,7 +820,7 @@
       }
       const difficulty = getDifficulty(score);
       const boosting = frame < boostUntil && boostPipesLeft > 0;
-      if (boostWasActive && !boosting) boostGraceUntil = Math.max(boostGraceUntil, frame + 54);
+      if (boostWasActive && !boosting) boostGraceUntil = Math.max(boostGraceUntil, frame + boostExitGraceFrames);
       boostWasActive = boosting;
       const speedScale = score === 0 ? .9 : 1;
       if (boosting) {
@@ -846,7 +847,7 @@
           }
           if (boosting) {
             boostPipesLeft--;
-            if (boostPipesLeft <= 0) boostGraceUntil = Math.max(boostGraceUntil, frame + 54);
+            if (boostPipesLeft <= 0) boostGraceUntil = Math.max(boostGraceUntil, frame + boostExitGraceFrames);
           }
           milestone ? playMilestone() : playScore();
           if (record) { best = nextScore; localStorage.setItem("pixel-bird-offline-best", String(best)); playRecord(milestone ? .16 : 0); }
@@ -881,11 +882,13 @@
       for (const pipe of pipes) {
         const topH = pipe.gapY - pipe.gapSize / 2, bottomY = pipe.gapY + pipe.gapSize / 2, mech = getMechanismRect(pipe);
         if (boosting) continue;
+        if (pipe.boostCleared) continue;
         const hitMech = mech && intersects(birdRect, mech);
         if (hitMech && destroyCharges > 0) { breakMechanism(pipe, mech); continue; }
         if (intersects(birdRect, { x: pipe.x, y: 0, width: pipeW, height: topH }) ||
           intersects(birdRect, { x: pipe.x, y: bottomY, width: pipeW, height: floorY - bottomY }) ||
           hitMech || pipeHazardHit(pipe, birdRect)) {
+          if (boostGraceActive) pipe.boostCleared = true;
           obstacleHit = true;
           break;
         }
@@ -895,7 +898,10 @@
       obstacleHit = obstacleHit || hitArrow || hitBossWave;
       if (hitGround || hitCeiling) {
         finishGame();
-      } else if (obstacleHit && (shieldActive || boostGraceActive)) {
+      } else if (obstacleHit && boostGraceActive) {
+        arrows = arrows.filter((arrow) => !intersects(birdRect, getArrowRect(arrow)));
+        bossWaves = bossWaves.filter((wave) => !intersects(birdRect, getBossWaveRect(wave)));
+      } else if (obstacleHit && shieldActive) {
         if (shieldCharges > 0) useShield(birdRect);
         arrows = arrows.filter((arrow) => !intersects(birdRect, getArrowRect(arrow)));
         bossWaves = bossWaves.filter((wave) => !intersects(birdRect, getBossWaveRect(wave)));
