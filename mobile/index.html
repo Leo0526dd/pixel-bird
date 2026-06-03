@@ -961,7 +961,7 @@
         const hitPipeHazard = pipeHazardHit(pipe, birdRect);
         if (hitPipeBody || hitMech || hitPipeHazard) {
           if (boostGraceActive) pipe.boostCleared = true;
-          obstacleType = hitPipeBody ? "pipe" : "hazard";
+          obstacleType = (hitPipeBody && !hitMech && !hitPipeHazard) ? "pipe" : "hazard";
           obstacleHit = true;
           break;
         }
