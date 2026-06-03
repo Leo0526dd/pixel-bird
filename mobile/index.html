@@ -450,6 +450,7 @@
     }
 
     function saveLocalRank(finalScore) {
+      if (finalScore <= 0) return;
       const rows = JSON.parse(localStorage.getItem("pixel-bird-local-ranks") || "[]");
       rows.push({ playerId, name: playerName, score: finalScore, createdAt: Date.now() });
       rows.sort((a, b) => b.score - a.score || b.createdAt - a.createdAt);
@@ -457,6 +458,7 @@
     }
 
     async function submitLeaderboard(finalScore) {
+      if (finalScore <= 0) return;
       saveLocalRank(finalScore);
       try {
         const db = await getLeaderboardClient();
@@ -472,7 +474,7 @@
       rankMeta.textContent = `玩家 ${playerName} · 正在读取云端前十名`;
       try {
         const db = await getLeaderboardClient();
-        const result = await db.collection(leaderboardConfig.collection).orderBy("score", "desc").limit(10).get();
+        const result = await db.collection(leaderboardConfig.collection).orderBy("score", "desc").limit(40).get();
         renderRanks(result.data || [], "云端前十名");
       } catch (error) {
         const rows = JSON.parse(localStorage.getItem("pixel-bird-local-ranks") || "[]");
@@ -497,7 +499,21 @@
         rankItems.innerHTML = `<div class="rank-item"><div><strong>暂无记录</strong><p>完成一局后会自动记录分数。</p></div></div>`;
         return;
       }
-      rows.slice(0, 10).forEach((row, index) => {
+      const seen = new Set();
+      const topRows = rows
+        .filter((row) => Number(row.score || 0) > 0)
+        .filter((row) => {
+          const key = String(row.name || row.playerId || "小飞鸟");
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .slice(0, 10);
+      if (!topRows.length) {
+        rankItems.innerHTML = `<div class="rank-item"><div><strong>暂无有效成绩</strong><p>完成一局并获得分数后会进入排行榜。</p></div></div>`;
+        return;
+      }
+      topRows.forEach((row, index) => {
         const item = document.createElement("div");
         item.className = "rank-item";
         item.innerHTML = `<div><strong>#${index + 1} ${row.name || "小飞鸟"}</strong><p>玩家昵称</p></div><strong>${Number(row.score || 0)}</strong>`;
