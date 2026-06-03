@@ -229,6 +229,7 @@
       { id: "score100", score: 100, text: "黑凤临空", desc: "单局达到100分并迎战黑凤凰。", icon: "phoenix" },
       { id: "boss100", score: 100, text: "黑凤熄焰", desc: "躲过黑凤凰5次声波。", icon: "boss", manual: true },
       { id: "score150", score: 150, text: "风暴挑战者", desc: "单局达到150分。", icon: "storm" },
+      { id: "boss150", score: 150, text: "双生退场", desc: "躲过双生ikun的冲击波和飞鸡。", icon: "boss", manual: true },
       { id: "score200", score: 200, text: "传奇航线", desc: "单局达到200分。", icon: "crown" }
     ];
     const unlockList = [
@@ -239,7 +240,7 @@
     const leaderboardConfig = { env: "pixelbird-d3gvwykqx50c17cbf", collection: "pixelbird_scores", enabled: true };
     let status = "ready", score = 0, best = Number(localStorage.getItem("pixel-bird-offline-best") || 0);
     let birdY = 220, velocity = 0, pipes = [], fruits = [], arrows = [], bosses = [], bossWaves = [], effects = [], frame = 0, runFrame = 0, birdKind = "chick", palette = palettes[0];
-    let shieldCharges = 0, shieldGraceUntil = 0, boostUntil = 0, boostPipesLeft = 0, boostGraceUntil = 0, boostWasActive = false, destroyCharges = 0, audioContext = null, ambient = null, npcCheerFrame = -999, lastTouchAt = 0;
+    let shieldCharges = 0, shieldGraceUntil = 0, boostUntil = 0, boostPipesLeft = 0, boostGraceUntil = 0, boostWasActive = false, destroyCharges = 0, audioContext = null, ambient = null, bossBgm = null, npcCheerFrame = -999, lastTouchAt = 0;
     let rewardState = loadRewards(), runReward = null, lastStageId = 1, sessionAchievements = [];
     let soundEnabled = localStorage.getItem("pixel-bird-sound") !== "off", masterVolume = .78;
     let playerName = localStorage.getItem("pixel-bird-player-name") || "小飞鸟";
@@ -715,6 +716,7 @@
 
     function resetGame() {
       score = 0; birdY = 220; velocity = 0; frame = 0; runFrame = 0; shieldCharges = 0; shieldGraceUntil = 0; boostUntil = 0; boostPipesLeft = 0; boostGraceUntil = 0; boostWasActive = false; destroyCharges = 0;
+      stopBossBgm();
       effects = []; arrows = []; bosses = []; bossWaves = []; runReward = null; sessionAchievements = []; lastStageId = getStage(0).id;
       const firstPipeX = isWechat ? W + 300 : W + 240;
       pipes = [createPipe(firstPipeX, 0, 1)];
@@ -759,7 +761,7 @@
     }
 
     function hasBossAtScore(scoreValue) {
-      return scoreValue === 50 || scoreValue === 100;
+      return scoreValue === 50 || scoreValue === 100 || scoreValue === 150;
     }
 
     function createFruit(x, seed) {
@@ -775,25 +777,35 @@
 
     function spawnBossForScore(scoreValue) {
       if (!hasBossAtScore(scoreValue) || bosses.some((boss) => boss.scoreValue === scoreValue)) return;
+      if (scoreValue === 150) {
+        bosses.push(
+          { type: "ikunTwin", skin: "ikun-classic", attackKind: "shock", scoreValue, x: W + 142, targetX: W - 58, y: 164, baseY: 164, shotsLeft: 5, nextShot: frame + 78, fade: 0, done: false },
+          { type: "ikunTwin", skin: "ikun-silver", attackKind: "chicken", scoreValue, x: W + 188, targetX: W - 92, y: 256, baseY: 256, shotsLeft: 5, nextShot: frame + 118, fade: 0, done: false }
+        );
+        effects.push({ kind: "bossIntro", x: W / 2, y: 154, start: frame, life: 220, text: "双生ikun来袭", sub: "冲击波与飞鸡，各5次" });
+        playTwinBossBgm();
+        return;
+      }
       const bossName = scoreValue === 50 ? "乌鸦" : "黑凤凰";
-      bosses.push({ type: scoreValue === 50 ? "crow" : "darkPhoenix", scoreValue, x: scoreValue === 50 ? W + 70 : W + 128, y: scoreValue === 50 ? 168 : 218, shotsLeft: 5, nextShot: frame + 70, fade: 0, done: false });
+      bosses.push({ type: scoreValue === 50 ? "crow" : "darkPhoenix", scoreValue, x: scoreValue === 50 ? W + 70 : W + 128, targetX: W - 78, y: scoreValue === 50 ? 168 : 218, baseY: scoreValue === 50 ? 168 : 218, shotsLeft: 5, nextShot: frame + 70, fade: 0, done: false });
       effects.push({ kind: "bossIntro", x: W / 2, y: 154, start: frame, life: 170, text: `${bossName}来袭`, sub: "躲避声波，坚持5次" });
       playBossIntro(scoreValue === 100);
     }
 
     function updateBosses() {
       for (const boss of bosses) {
-        boss.x += (W - 78 - boss.x) * .045;
-        boss.y += Math.sin(frame / 28 + boss.scoreValue) * .28;
+        boss.x += ((boss.targetX || W - 78) - boss.x) * .045;
+        boss.y = (boss.baseY || boss.y) + Math.sin(frame / 28 + boss.scoreValue) * (boss.type === "ikunTwin" ? 5 : 4);
         if (!boss.done && frame >= boss.nextShot && boss.shotsLeft > 0) {
-          bossWaves.push({ x: boss.x - 20, y: boss.y + (boss.shotsLeft % 2 ? -18 : 18), speed: 4.1 + (boss.scoreValue === 100 ? .45 : 0), type: boss.type, born: frame });
+          if (boss.attackKind === "chicken") bossWaves.push({ kind: "chicken", x: boss.x - 26, y: boss.y + (boss.shotsLeft % 2 ? -16 : 16), speed: 4.9, type: boss.type, born: frame, seed: boss.shotsLeft });
+          else bossWaves.push({ kind: boss.attackKind === "shock" ? "shock" : "wave", x: boss.x - 20, y: boss.y + (boss.shotsLeft % 2 ? -18 : 18), speed: 4.1 + (boss.scoreValue >= 100 ? .45 : 0), type: boss.type, born: frame });
           boss.shotsLeft--;
-          boss.nextShot = frame + 82;
-          playBossWave();
+          boss.nextShot = frame + (boss.scoreValue === 150 ? 72 : 82);
+          playBossWave(boss.attackKind);
         }
         if (!boss.done && boss.shotsLeft <= 0 && frame > boss.nextShot - 36) {
           boss.done = true;
-          unlockManualAchievement(boss.scoreValue === 50 ? "boss50" : "boss100");
+          unlockManualAchievement(boss.scoreValue === 50 ? "boss50" : boss.scoreValue === 100 ? "boss100" : "boss150");
         }
         if (boss.done) boss.fade++;
       }
@@ -883,7 +895,8 @@
       if (lastFruitX < W + pipeSpacing * 3.2) fruits.push(createFruit(lastFruitX + pipeSpacing * (3.1 + (score % 2) * .6), frame + score));
       arrows = arrows.filter((arrow) => arrow.x > -70);
       updateBosses();
-      if (score >= 50 && frame % (isChallengeSegment(score) ? 190 : difficulty.arrowRate) === 0 && arrows.length < (isChallengeSegment(score) ? 3 : 2)) arrows.push(createArrow(frame + score));
+      const twinBossActive = bosses.some((boss) => boss.scoreValue === 150 && !boss.done);
+      if (score >= 50 && !twinBossActive && frame % (isChallengeSegment(score) ? 190 : difficulty.arrowRate) === 0 && arrows.length < (isChallengeSegment(score) ? 3 : 2)) arrows.push(createArrow(frame + score));
       const birdRect = { x: birdX - birdSize / 2 + 4, y: birdY - birdSize / 2 + 3, width: birdSize - 8, height: birdSize - 6 };
       const floorY = H - groundH;
       const hitCeiling = birdRect.y <= 0;
@@ -953,6 +966,7 @@
     function finishGame() {
       if (status === "ended") return;
       playCrash();
+      stopBossBgm();
       best = Math.max(best, score); localStorage.setItem("pixel-bird-offline-best", String(best));
       runReward = finalizeRewards(score);
       submitLeaderboard(score);
@@ -1112,21 +1126,35 @@
       for (const wave of bossWaves) {
         ctx.save();
         ctx.globalAlpha = clamp(1 - (frame - wave.born) / 180, .25, .9);
-        ctx.fillStyle = wave.type === "darkPhoenix" ? "rgba(124,23,50,.72)" : "rgba(31,31,42,.62)";
-        ctx.fillRect(wave.x - W, wave.y - 8, W, 16);
-        ctx.fillStyle = "#fff18a";
-        for (let i = 0; i < 5; i++) ctx.fillRect(wave.x - i * 46, wave.y - 3 + Math.sin(frame / 5 + i) * 5, 24, 6);
+        if (wave.kind === "chicken") {
+          ctx.translate(wave.x, wave.y);
+          ctx.fillStyle = "#f6c65b"; ctx.fillRect(-15,-12,25,21);
+          ctx.fillStyle = "#ffe68c"; ctx.fillRect(-7,-7,17,14);
+          ctx.fillStyle = "#f07f2f"; ctx.fillRect(-25,-5,14,6);
+          ctx.fillStyle = "#e85b7d"; ctx.fillRect(-7,-19,6,8); ctx.fillRect(0,-18,6,7);
+          ctx.fillStyle = "#fff"; ctx.fillRect(1,-10,6,6); ctx.fillStyle = "#1f1f2a"; ctx.fillRect(3,-8,3,3);
+          ctx.fillStyle = "#fff18a"; ctx.fillRect(9, -2 + Math.sin(frame / 4) * 3, 18, 5);
+        } else {
+          ctx.fillStyle = wave.type === "darkPhoenix" ? "rgba(124,23,50,.72)" : wave.type === "ikunTwin" ? "rgba(245,197,66,.7)" : "rgba(31,31,42,.62)";
+          ctx.fillRect(wave.x - W, wave.y - 8, W, 16);
+          ctx.fillStyle = wave.type === "ikunTwin" ? "#fff8d9" : "#fff18a";
+          for (let i = 0; i < 5; i++) ctx.fillRect(wave.x - i * 46, wave.y - 3 + Math.sin(frame / 5 + i) * 5, 24, 6);
+        }
         ctx.restore();
       }
       for (const boss of bosses) {
         ctx.save();
         ctx.globalAlpha = boss.done ? clamp(1 - boss.fade / 90, 0, 1) : 1;
         ctx.translate(boss.x, boss.y);
-        ctx.scale(boss.type === "darkPhoenix" ? 1.18 : 1, 1.18);
+        ctx.scale(boss.type === "darkPhoenix" ? 1.18 : boss.type === "ikunTwin" ? 1.12 : 1, boss.type === "ikunTwin" ? 1.12 : 1.18);
         if (boss.type === "crow") {
           ctx.fillStyle="#1f1f2a"; ctx.fillRect(-22,-15,36,28); ctx.fillRect(-38,-6,22,15); ctx.fillRect(10,-6,26,15);
           ctx.fillStyle="#4b3a4a"; ctx.fillRect(-16,-21,20,8); ctx.fillStyle="#6b4a2c"; ctx.fillRect(13,-2,24,8);
           ctx.fillStyle="#fff"; ctx.fillRect(-3,-10,7,7); ctx.fillStyle="#1f1f2a"; ctx.fillRect(1,-7,3,3);
+        } else if (boss.type === "ikunTwin") {
+          drawIkunShape(ctx, boss.skin, Math.sin(frame / 7 + boss.y) > 0);
+          ctx.fillStyle = boss.attackKind === "chicken" ? "#f07f2f" : "#fff18a";
+          ctx.fillRect(-36, -2, 10, 5);
         } else {
           ctx.fillStyle="#1f1025"; ctx.fillRect(-24,-18,42,31); ctx.fillStyle="#3a1236"; ctx.fillRect(-18,-23,34,34);
           ctx.fillStyle="#7c1732"; ctx.fillRect(-42,-7,30,18); ctx.fillRect(9,-7,32,18); ctx.fillStyle="#d99812"; ctx.fillRect(11,-5,28,8);
@@ -1141,6 +1169,7 @@
     }
 
     function getBossWaveRect(wave) {
+      if (wave.kind === "chicken") return { x: wave.x - 21, y: wave.y - 16, width: 43, height: 28 };
       return { x: wave.x - W, y: wave.y - 9, width: W, height: 18 };
     }
 
@@ -1370,8 +1399,10 @@
     function playNpcCheer(v){if(!audioContext||!soundEnabled)return;const p=[[740,920,"triangle"],[660,880,"sine"],[520,690,"square"],[820,1040,"triangle"],[590,760,"sine"],[700,540,"square"],[880,1108,"triangle"],[610,780,"sine"],[960,720,"triangle"]][v%9];tone(audioContext,p[0],0,.045,.012,p[2]);tone(audioContext,p[1],.055,.05,.011,p[2]);}
     function playFruit(type){const ac=getAudioContext();if(!ac)return;const base=type==="boost"?1046:type==="shield"?784:698;tone(ac,base,0,.055,.045,"triangle");tone(ac,base*1.25,.055,.08,.04,"sine");}
     function playBreak(){const ac=getAudioContext();if(!ac)return;tone(ac,220,0,.06,.035,"square");tone(ac,330,.045,.08,.03,"triangle");}
-    function playBossWave(){const ac=getAudioContext();if(!ac)return;tone(ac,160,0,.12,.035,"sawtooth");tone(ac,110,.08,.16,.025,"sine");}
+    function playBossWave(kind){const ac=getAudioContext();if(!ac)return;if(kind==="chicken"){tone(ac,620,0,.05,.026,"square");tone(ac,820,.045,.06,.022,"triangle");return;}tone(ac,kind==="shock"?210:160,0,.12,.035,"sawtooth");tone(ac,kind==="shock"?150:110,.08,.16,.025,"sine");}
     function playBossIntro(stronger=false){const ac=getAudioContext();if(!ac||!soundEnabled)return;const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="sawtooth";o.frequency.setValueAtTime(stronger?72:88,now);o.frequency.exponentialRampToValueAtTime(stronger?42:54,now+.72);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(outputVolume(stronger?.13:.1),now+.05);g.gain.exponentialRampToValueAtTime(.001,now+.82);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.86);tone(ac,stronger?196:174,.12,.12,.04,"triangle");tone(ac,stronger?147:130,.34,.18,.045,"sawtooth");tone(ac,stronger?98:110,.58,.2,.04,"sine");}
+    function playTwinBossBgm(){if(!soundEnabled)return;stopBossBgm();try{bossBgm=new Audio("ikun-boss.mp3");bossBgm.volume=Math.min(.32, outputVolume(.28));bossBgm.currentTime=0;const p=bossBgm.play();if(p&&p.catch)p.catch(()=>{});setTimeout(()=>stopBossBgm(),8000);}catch(error){}playBossIntro(true);}
+    function stopBossBgm(){if(!bossBgm)return;try{bossBgm.pause();bossBgm.currentTime=0;}catch(error){}bossBgm=null;}
     function playCrash(){const ac=getAudioContext();if(!ac||!soundEnabled)return;const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="sawtooth";o.frequency.setValueAtTime(180,now);o.frequency.exponentialRampToValueAtTime(52,now+.28);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(outputVolume(.16),now+.02);g.gain.exponentialRampToValueAtTime(.001,now+.32);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.34);}
     function tone(ac,f,delay,dur,vol,type){if(!soundEnabled)return;const s=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(.001,s);g.gain.exponentialRampToValueAtTime(outputVolume(vol),s+.012);g.gain.exponentialRampToValueAtTime(.001,s+dur);o.connect(g);g.connect(ac.destination);o.start(s);o.stop(s+dur+.02);}
     function clamp(v,min,max){return Math.min(Math.max(v,min),max);} function smoothStep(v){return v*v*(3-2*v);} function intersects(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;}
@@ -1400,6 +1431,7 @@
     });
     soundToggle.addEventListener("change", (event) => {
       soundEnabled = event.target.checked;
+      if (!soundEnabled) stopBossBgm();
       localStorage.setItem("pixel-bird-sound", soundEnabled ? "on" : "off");
       updateAmbient(getWeather(frame));
       syncUi();
