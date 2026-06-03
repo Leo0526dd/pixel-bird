@@ -58,7 +58,7 @@
       box-shadow: inset -4px -4px 0 rgba(117,70,28,.18), 0 8px 0 #7b5125;
       text-align: center;
     }
-    .panel-card { width: min(94vw, 460px); max-height: min(84vh, 620px); overflow: auto; text-align: left; }
+    .panel-card { width: min(94vw, 460px); max-height: min(84vh, 620px); overflow: hidden; text-align: left; }
     .name-card h1 { margin: 0; font-size: 22px; line-height: 1.15; color: #5d2f18; }
     .name-card input {
       height: 42px; border: 3px solid #7b5125; border-radius: 6px; background: #fff8d9; color: #5d2f18;
@@ -75,6 +75,9 @@
       font-weight: 900; box-shadow: 0 3px 0 #7b5125; min-height: 34px; padding: 0 10px;
     }
     .wallet { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 900; }
+    #shopItems, #achievementItems {
+      display: grid; gap: 8px; max-height: min(66vh, 470px); overflow-y: auto; padding-right: 3px;
+    }
     .shop-section { display: grid; gap: 7px; margin-top: 2px; }
     .shop-section h3 { margin: 8px 0 0; font-size: 15px; color: #5d2f18; }
     .shop-item {
@@ -87,6 +90,7 @@
       padding: 9px; border: 2px solid #7b5125; border-radius: 6px; background: #fff8d9;
       box-shadow: inset -2px -2px 0 rgba(117,70,28,.12);
     }
+    .achievement-item { grid-template-columns: 1fr 48px auto; }
     .rank-item { grid-template-columns: 1fr auto auto; }
     .shop-item strong, .achievement-item strong, .rank-item strong { display: block; font-size: 14px; color: #4b2817; }
     .shop-item p, .achievement-item p, .rank-item p { margin: 3px 0 0; font-size: 11px; line-height: 1.35; color: #70411f; }
@@ -96,6 +100,10 @@
       background: #9fd8ef; box-shadow: inset -2px -2px 0 rgba(117,70,28,.12);
     }
     .achievement-item.locked { filter: grayscale(.45); opacity: .72; }
+    .achievement-preview {
+      width: 44px; height: 36px; display: block; border: 2px solid #7b5125; border-radius: 5px;
+      background: #9fd8ef; box-shadow: inset -2px -2px 0 rgba(117,70,28,.12);
+    }
     .rank-list { display: grid; gap: 7px; max-height: 390px; overflow-y: auto; padding-right: 3px; }
     .rank-meta { font-size: 12px; line-height: 1.4; color: #70411f; }
     .rank-item.medal {
@@ -179,6 +187,8 @@
       { id: "chick", name: "小鸡", cost: 0, desc: "轻快的新手伙伴，适合稳定练习。" },
       { id: "owl", name: "夜枭", cost: 24, desc: "夜航风格，眼神更专注，适合挑战高分。" },
       { id: "parrot", name: "鹦鹉", cost: 36, desc: "鲜艳冒险家，飞过暴风雨也很醒目。" },
+      { id: "ikun-classic", name: "ikun 黑发", cost: 25, rankGift: true, desc: "黑发背带篮球魂，朝左出击，足够醒目。" },
+      { id: "ikun-silver", name: "ikun 银发", cost: 25, rankGift: true, desc: "银发冷面形态，朝左飞行，辨识度拉满。" },
       { id: "phoenix", name: "凤凰", cost: 0, limited: true, desc: "这是属于你的荣耀！！" }
     ];
     const palettes = [
@@ -200,10 +210,15 @@
       { id: 4, min: 100, name: "Stage 4 暴风雨", sky: "storm", pipeTint: "steel" }
     ];
     const achievementList = [
-      { id: "score20", score: 20, text: "稳定起飞", desc: "单局达到20分。" },
-      { id: "score50", score: 50, text: "穿越黄昏", desc: "单局达到50分。" },
-      { id: "score100", score: 100, text: "夜航高手", desc: "单局达到100分。" },
-      { id: "score150", score: 150, text: "风暴挑战者", desc: "单局达到150分。" }
+      { id: "score10", score: 10, text: "热身完成", desc: "单局达到10分。", icon: "coin" },
+      { id: "score20", score: 20, text: "稳定起飞", desc: "单局达到20分。", icon: "bird" },
+      { id: "score50", score: 50, text: "乌鸦来袭", desc: "单局达到50分并迎战乌鸦。", icon: "crow" },
+      { id: "boss50", score: 50, text: "乌鸦退场", desc: "躲过乌鸦5次声波。", icon: "boss", manual: true },
+      { id: "score75", score: 75, text: "节奏大师", desc: "单局达到75分。", icon: "stage" },
+      { id: "score100", score: 100, text: "黑凤临空", desc: "单局达到100分并迎战黑凤凰。", icon: "phoenix" },
+      { id: "boss100", score: 100, text: "黑凤熄焰", desc: "躲过黑凤凰5次声波。", icon: "boss", manual: true },
+      { id: "score150", score: 150, text: "风暴挑战者", desc: "单局达到150分。", icon: "storm" },
+      { id: "score200", score: 200, text: "传奇航线", desc: "单局达到200分。", icon: "crown" }
     ];
     const unlockList = [
       ...kinds.map((item) => ({ id: `bird-${item.id}`, cost: item.cost, text: item.name })),
@@ -212,7 +227,7 @@
     ];
     const leaderboardConfig = { env: "pixelbird-d3gvwykqx50c17cbf", collection: "pixelbird_scores", enabled: true };
     let status = "ready", score = 0, best = Number(localStorage.getItem("pixel-bird-offline-best") || 0);
-    let birdY = 220, velocity = 0, pipes = [], fruits = [], arrows = [], effects = [], frame = 0, runFrame = 0, birdKind = "chick", palette = palettes[0];
+    let birdY = 220, velocity = 0, pipes = [], fruits = [], arrows = [], bosses = [], bossWaves = [], effects = [], frame = 0, runFrame = 0, birdKind = "chick", palette = palettes[0];
     let shieldCharges = 0, shieldGraceUntil = 0, boostUntil = 0, boostPipesLeft = 0, boostGraceUntil = 0, boostWasActive = false, destroyCharges = 0, audioContext = null, ambient = null, npcCheerFrame = -999, lastTouchAt = 0;
     let rewardState = loadRewards(), runReward = null, lastStageId = 1, sessionAchievements = [];
     let soundEnabled = localStorage.getItem("pixel-bird-sound") !== "off", masterVolume = .78;
@@ -359,7 +374,7 @@
       const preview = createShopPreview(item);
       const btn = document.createElement("button");
       const unlocked = isUnlocked(item.type, item.id);
-      btn.textContent = item.selected ? "使用中" : unlocked ? "使用" : item.limited ? "榜首限定" : `${item.cost}金币`;
+      btn.textContent = item.selected ? "使用中" : unlocked ? "使用" : item.limited ? "进商店领取" : item.rankGift ? `${item.cost}金币/前三赠` : `${item.cost}金币`;
       btn.className = item.selected ? "selected" : "";
       btn.onclick = (event) => {
         event.stopPropagation();
@@ -414,6 +429,8 @@
         c.fillStyle="#ff9a35"; c.fillRect(8,-7,24,9); c.fillStyle="#6a2146"; c.fillRect(22,0,8,4);
         c.fillStyle="#fff18a"; c.fillRect(-13,-28,6,12); c.fillStyle="#f26f3b"; c.fillRect(-5,-31,7,15); c.fillStyle="#fff18a"; c.fillRect(3,-27,6,11);
         c.fillStyle="#f26f3b"; c.fillRect(-18,13,8,25); c.fillStyle="#f5c542"; c.fillRect(-9,13,8,30); c.fillStyle="#fff18a"; c.fillRect(0,13,8,25); drawShopEye(c,3,-13);
+      } else if (kind === "ikun-classic" || kind === "ikun-silver") {
+        drawIkunShape(c, kind, false);
       } else {
         c.fillStyle=p.shadow; c.fillRect(-17,-11,30,25); c.fillStyle=p.body; c.fillRect(-14,-15,27,26); c.fillStyle=p.belly; c.fillRect(-7,-6,22,18);
         c.fillStyle=p.beak; c.fillRect(8,-3,20,8); c.fillStyle=p.shadow; c.fillRect(19,1,8,4); drawShopEye(c,3,-12); c.fillStyle=p.wing; c.fillRect(-19,2,17,12); c.fillStyle=p.body; c.fillRect(-16,-2,13,8);
@@ -443,13 +460,34 @@
         const done = rewardState.achievements.includes(item.id);
         const row = document.createElement("div");
         row.className = `achievement-item${done ? "" : " locked"}`;
-        row.innerHTML = `<div><strong>${done ? "已达成" : "未达成"} · ${item.text}</strong><p>${item.desc}</p></div><strong>${item.score}</strong>`;
+        const info = document.createElement("div");
+        info.innerHTML = `<strong>${done ? "已达成" : "未达成"} · ${item.text}</strong><p>${item.desc}</p>`;
+        row.appendChild(info);
+        row.appendChild(createAchievementPreview(item));
+        const scoreTag = document.createElement("strong");
+        scoreTag.textContent = item.manual ? "BOSS" : item.score;
+        row.appendChild(scoreTag);
         achievementItems.appendChild(row);
       });
     }
 
+    function createAchievementPreview(item) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 88; canvas.height = 72; canvas.className = "achievement-preview";
+      const c = canvas.getContext("2d"); c.imageSmoothingEnabled = false;
+      c.fillStyle = "#8ed0ee"; c.fillRect(0,0,88,72);
+      if (item.icon === "coin") { c.fillStyle="#8b5a05"; c.fillRect(28,16,32,32); c.fillStyle="#f5c542"; c.fillRect(33,20,22,24); c.fillStyle="#fff18a"; c.fillRect(38,24,8,8); }
+      else if (item.icon === "crow") { c.fillStyle="#1f1f2a"; c.fillRect(24,24,30,22); c.fillRect(16,30,16,12); c.fillStyle="#6b4a2c"; c.fillRect(49,31,18,7); c.fillStyle="#fff"; c.fillRect(41,27,6,6); }
+      else if (item.icon === "phoenix") { c.fillStyle="#2b1b29"; c.fillRect(24,22,31,25); c.fillStyle="#7c1732"; c.fillRect(12,28,22,14); c.fillRect(50,28,22,14); c.fillStyle="#f26f3b"; c.fillRect(35,12,14,14); }
+      else if (item.icon === "boss") { c.fillStyle="#552b17"; c.fillRect(20,18,42,28); c.fillStyle="#f26f3b"; c.fillRect(10,48,68,6); c.fillStyle="#fff18a"; c.fillRect(18,54,52,5); }
+      else if (item.icon === "storm") { c.fillStyle="#334852"; c.fillRect(0,0,88,72); c.fillStyle="#d8dee2"; c.fillRect(17,18,42,16); c.fillStyle="#fff18a"; c.fillRect(41,30,8,18); c.fillRect(33,43,8,14); }
+      else if (item.icon === "crown") { c.fillStyle="#8b5a05"; c.fillRect(23,42,42,10); c.fillStyle="#f5c542"; c.fillRect(25,24,9,22); c.fillRect(40,16,9,30); c.fillRect(55,24,9,22); c.fillStyle="#fff18a"; c.fillRect(41,20,7,7); }
+      else { c.fillStyle="#f6c65b"; c.fillRect(28,22,28,25); c.fillStyle="#ffe68c"; c.fillRect(37,31,18,15); c.fillStyle="#f07f2f"; c.fillRect(51,29,18,7); c.fillStyle="#1f1f2a"; c.fillRect(45,25,4,4); }
+      return canvas;
+    }
+
     function checkAchievementPopups(scoreValue) {
-      const fresh = achievementList.filter((a) => scoreValue >= a.score && !rewardState.achievements.includes(a.id));
+      const fresh = achievementList.filter((a) => !a.manual && scoreValue >= a.score && !rewardState.achievements.includes(a.id));
       if (!fresh.length) return;
       fresh.forEach((item, index) => {
         rewardState.achievements.push(item.id);
@@ -590,29 +628,52 @@
         rankItems.innerHTML = `<div class="rank-item"><div><strong>暂无有效成绩</strong><p>完成一局并获得分数后会进入排行榜。</p></div></div>`;
         return;
       }
-      maybeAwardPhoenix(topRows, title);
+      maybeAwardRankRewards(topRows, title);
       topRows.forEach((row, index) => {
         const item = document.createElement("div");
         const medalClass = index === 0 ? "gold" : index === 1 ? "silver" : index === 2 ? "bronze" : "";
         item.className = `rank-item${medalClass ? ` medal ${medalClass}` : ""}`;
-        const medal = index < 3 ? `<span class="medal-badge">${index + 1}</span>` : "";
+        const medal = index < 3 ? `<span class="medal-badge">${index + 1}</span>` : `<span></span>`;
         item.innerHTML = `<div><strong>#${index + 1} ${row.name || "小飞鸟"}</strong><p>${index < 3 ? "荣耀席位" : "玩家昵称"}</p></div>${medal}<strong>${Number(row.score || 0)}</strong>`;
         rankItems.appendChild(item);
       });
     }
 
-    function maybeAwardPhoenix(rows, title) {
-      if (!title.includes("云端")) return;
-      const leader = rows[0];
-      if (!leader || Number(leader.score || 0) <= 0) return;
-      if (leader.playerId !== playerId) return;
-      const key = getUnlockId("bird", "phoenix");
-      if (rewardState.unlocks.includes(key)) return;
+    function maybeAwardRankRewards(rows, title) {
+      if (title !== "云端前十名" && title !== "云端奖励检查") return;
+      const topThree = rows.slice(0, 3);
+      let awarded = false;
+      if (topThree.some((row) => isCurrentRankRow(row))) {
+        awarded = awardSkin("ikun-classic") || awarded;
+        awarded = awardSkin("ikun-silver") || awarded;
+      }
+      if (rows[0] && isCurrentRankRow(rows[0])) awarded = awardSkin("phoenix") || awarded;
+      if (awarded) {
+        saveRewards();
+        effects.push({ kind: "achievement", x: W / 2, y: 46, start: frame, life: 170, text: "限定皮肤已发放" });
+        playAchievement();
+        renderShop();
+      }
+    }
+
+    function isCurrentRankRow(row) {
+      return row && (row.playerId === playerId || row.name === playerName);
+    }
+
+    function awardSkin(id) {
+      const key = getUnlockId("bird", id);
+      if (rewardState.unlocks.includes(key)) return false;
       rewardState.unlocks.push(key);
-      saveRewards();
-      effects.push({ kind: "achievement", x: W / 2, y: 46, start: frame, life: 170, text: "凤凰限定皮肤" });
-      playAchievement();
-      renderShop();
+      return true;
+    }
+
+    async function checkLeaderboardRewards() {
+      try {
+        const db = await getLeaderboardClient();
+        const result = await db.collection(leaderboardConfig.collection).orderBy("score", "desc").limit(10).get();
+        const rows = (result.data || []).filter((row) => Number(row.score || 0) > 0);
+        maybeAwardRankRewards(rows, "云端奖励检查");
+      } catch (error) {}
     }
 
     function normalizeName() {
@@ -639,7 +700,7 @@
 
     function resetGame() {
       score = 0; birdY = 220; velocity = 0; frame = 0; runFrame = 0; shieldCharges = 0; shieldGraceUntil = 0; boostUntil = 0; boostPipesLeft = 0; boostGraceUntil = 0; boostWasActive = false; destroyCharges = 0;
-      effects = []; arrows = []; runReward = null; sessionAchievements = []; lastStageId = getStage(0).id;
+      effects = []; arrows = []; bosses = []; bossWaves = []; runReward = null; sessionAchievements = []; lastStageId = getStage(0).id;
       const firstPipeX = isWechat ? W + 300 : W + 240;
       pipes = [createPipe(firstPipeX, 0, 1)];
       pipes.push(createPipe(pipes[0].x + getPipeSpacing(2), 1, 2));
@@ -665,18 +726,25 @@
     }
 
     function createMechanism(scoreValue, rhythm) {
-      if (scoreValue < 4 || scoreValue % 10 === 0 || scoreValue % 3 !== 0) return null;
-      if (rhythm.type === "easy" && scoreValue % 6 !== 0) return null;
+      if (hasBossAtScore(scoreValue) || hasBossAtScore(scoreValue - 1) || hasBossAtScore(scoreValue + 1)) return null;
+      if (scoreValue < 4 || scoreValue % 10 === 0 || scoreValue % 4 !== 0) return null;
+      if (scoreValue % 8 === 4) return null;
+      if (rhythm.type === "easy") return null;
       const kinds = ["gear", "spinner", "spark", "blade", "drop"];
       return { kind: kinds[scoreValue % kinds.length], offsetY: scoreValue % 2 === 0 ? -34 : 34 };
     }
 
     function createPipeHazard(scoreValue, rhythm) {
+      if (hasBossAtScore(scoreValue) || hasBossAtScore(scoreValue - 1) || hasBossAtScore(scoreValue + 1)) return null;
       if (scoreValue < 3 || scoreValue % 10 === 0) return null;
       if (rhythm.type === "easy") return null;
-      if (scoreValue % 7 === 0) return { kind: "fire", side: scoreValue % 2 ? "top" : "bottom", phase: scoreValue * 13 };
-      if (scoreValue % 5 === 0) return { kind: "spike", side: scoreValue % 2 ? "top" : "bottom", phase: scoreValue * 9 };
+      if (scoreValue % 7 === 0 && scoreValue % 14 !== 7) return { kind: "fire", side: scoreValue % 2 ? "top" : "bottom", phase: scoreValue * 13 };
+      if (scoreValue % 6 === 0 && scoreValue % 12 !== 6) return { kind: "spike", side: scoreValue % 2 ? "top" : "bottom", phase: scoreValue * 9 };
       return null;
+    }
+
+    function hasBossAtScore(scoreValue) {
+      return scoreValue === 50 || scoreValue === 100;
     }
 
     function createFruit(x, seed) {
@@ -688,6 +756,44 @@
 
     function createArrow(seed) {
       return { x: W + 44, y: clamp(142 + ((seed * 83) % 300), 110, H - groundH - 82), speed: 2.75 + (seed % 3) * .22, seed };
+    }
+
+    function spawnBossForScore(scoreValue) {
+      if (!hasBossAtScore(scoreValue) || bosses.some((boss) => boss.scoreValue === scoreValue)) return;
+      bosses.push({ type: scoreValue === 50 ? "crow" : "darkPhoenix", scoreValue, x: W + 70, y: scoreValue === 50 ? 168 : 226, shotsLeft: 5, nextShot: frame + 70, fade: 0, done: false });
+      effects.push({ kind: "stage", x: W / 2, y: 92, start: frame, life: 120, text: scoreValue === 50 ? "BOSS 乌鸦" : "BOSS 黑凤凰" });
+      playMilestone();
+    }
+
+    function updateBosses() {
+      for (const boss of bosses) {
+        boss.x += (W - 78 - boss.x) * .045;
+        boss.y += Math.sin(frame / 28 + boss.scoreValue) * .28;
+        if (!boss.done && frame >= boss.nextShot && boss.shotsLeft > 0) {
+          bossWaves.push({ x: boss.x - 20, y: boss.y + (boss.shotsLeft % 2 ? -18 : 18), speed: 4.1 + (boss.scoreValue === 100 ? .45 : 0), type: boss.type, born: frame });
+          boss.shotsLeft--;
+          boss.nextShot = frame + 82;
+          playBossWave();
+        }
+        if (!boss.done && boss.shotsLeft <= 0 && frame > boss.nextShot - 36) {
+          boss.done = true;
+          unlockManualAchievement(boss.scoreValue === 50 ? "boss50" : "boss100");
+        }
+        if (boss.done) boss.fade++;
+      }
+      bossWaves.forEach((wave) => wave.x -= wave.speed);
+      bossWaves = bossWaves.filter((wave) => wave.x > -W - 90);
+      bosses = bosses.filter((boss) => boss.fade < 90);
+    }
+
+    function unlockManualAchievement(id) {
+      const item = achievementList.find((a) => a.id === id);
+      if (!item || rewardState.achievements.includes(id)) return;
+      rewardState.achievements.push(id);
+      sessionAchievements.push(item);
+      saveRewards();
+      effects.push({ kind: "achievement", x: W / 2, y: 46, start: frame, life: 150, text: item.text });
+      playAchievement();
     }
 
     function flap() {
@@ -745,6 +851,7 @@
           milestone ? playMilestone() : playScore();
           if (record) { best = nextScore; localStorage.setItem("pixel-bird-offline-best", String(best)); playRecord(milestone ? .16 : 0); }
           checkAchievementPopups(score);
+          spawnBossForScore(score);
           syncUi();
         }
       }
@@ -759,6 +866,7 @@
       const lastFruitX = fruits.length ? fruits[fruits.length - 1].x : W;
       if (lastFruitX < W + pipeSpacing * 3.2) fruits.push(createFruit(lastFruitX + pipeSpacing * (3.1 + (score % 2) * .6), frame + score));
       arrows = arrows.filter((arrow) => arrow.x > -70);
+      updateBosses();
       if (score >= 50 && frame % (isChallengeSegment(score) ? 190 : difficulty.arrowRate) === 0 && arrows.length < (isChallengeSegment(score) ? 3 : 2)) arrows.push(createArrow(frame + score));
       const birdRect = { x: birdX - birdSize / 2 + 4, y: birdY - birdSize / 2 + 3, width: birdSize - 8, height: birdSize - 6 };
       const floorY = H - groundH;
@@ -783,12 +891,14 @@
         }
       }
       const hitArrow = !boosting && arrows.some((arrow) => intersects(birdRect, getArrowRect(arrow)));
-      obstacleHit = obstacleHit || hitArrow;
+      const hitBossWave = !boosting && bossWaves.some((wave) => intersects(birdRect, getBossWaveRect(wave)));
+      obstacleHit = obstacleHit || hitArrow || hitBossWave;
       if (hitGround || hitCeiling) {
         finishGame();
       } else if (obstacleHit && (shieldActive || boostGraceActive)) {
         if (shieldCharges > 0) useShield(birdRect);
         arrows = arrows.filter((arrow) => !intersects(birdRect, getArrowRect(arrow)));
+        bossWaves = bossWaves.filter((wave) => !intersects(birdRect, getBossWaveRect(wave)));
       } else if (obstacleHit) finishGame();
       effects = effects.filter((e) => frame - e.start < e.life);
     }
@@ -852,7 +962,7 @@
 
     function drawGame(weather) {
       ctx.clearRect(0, 0, W, H);
-      drawSky(weather); drawBoostTrail(); drawFruits(); drawPipes(); drawArrows(); drawGround(); drawNpcs(); drawEffects(); drawWeather(weather); drawBird(); drawProgressHud(); drawPowerHud(); drawScore();
+      drawSky(weather); drawBoostTrail(); drawFruits(); drawPipes(); drawArrows(); drawBosses(); drawGround(); drawNpcs(); drawEffects(); drawWeather(weather); drawBird(); drawProgressHud(); drawPowerHud(); drawScore();
       if (status !== "playing" || runFrame < startBufferFrames) drawOverlay();
     }
 
@@ -975,6 +1085,42 @@
 
     function getArrowRect(arrow) {
       return { x: arrow.x - 34, y: arrow.y - 8, width: 60, height: 16 };
+    }
+
+    function drawBosses() {
+      for (const wave of bossWaves) {
+        ctx.save();
+        ctx.globalAlpha = clamp(1 - (frame - wave.born) / 180, .25, .9);
+        ctx.fillStyle = wave.type === "darkPhoenix" ? "rgba(124,23,50,.72)" : "rgba(31,31,42,.62)";
+        ctx.fillRect(wave.x - W, wave.y - 8, W, 16);
+        ctx.fillStyle = "#fff18a";
+        for (let i = 0; i < 5; i++) ctx.fillRect(wave.x - i * 46, wave.y - 3 + Math.sin(frame / 5 + i) * 5, 24, 6);
+        ctx.restore();
+      }
+      for (const boss of bosses) {
+        ctx.save();
+        ctx.globalAlpha = boss.done ? clamp(1 - boss.fade / 90, 0, 1) : 1;
+        ctx.translate(boss.x, boss.y);
+        ctx.scale(boss.type === "darkPhoenix" ? 1.18 : 1, 1.18);
+        if (boss.type === "crow") {
+          ctx.fillStyle="#1f1f2a"; ctx.fillRect(-22,-15,36,28); ctx.fillRect(-38,-6,22,15); ctx.fillRect(10,-6,26,15);
+          ctx.fillStyle="#4b3a4a"; ctx.fillRect(-16,-21,20,8); ctx.fillStyle="#6b4a2c"; ctx.fillRect(13,-2,24,8);
+          ctx.fillStyle="#fff"; ctx.fillRect(-3,-10,7,7); ctx.fillStyle="#1f1f2a"; ctx.fillRect(1,-7,3,3);
+        } else {
+          ctx.fillStyle="#1f1025"; ctx.fillRect(-24,-18,42,31); ctx.fillStyle="#3a1236"; ctx.fillRect(-18,-23,34,34);
+          ctx.fillStyle="#7c1732"; ctx.fillRect(-42,-7,30,18); ctx.fillRect(9,-7,32,18); ctx.fillStyle="#d99812"; ctx.fillRect(11,-5,28,8);
+          ctx.fillStyle="#2b1b29"; ctx.fillRect(17,0,12,6); ctx.fillStyle="#f26f3b"; ctx.fillRect(-7,-31,9,16); ctx.fillStyle="#fff18a"; ctx.fillRect(2,-27,7,12);
+          ctx.fillStyle="#7c1732"; ctx.fillRect(-18,12,9,24); ctx.fillStyle="#d99812"; ctx.fillRect(-8,12,8,28); ctx.fillStyle="#3a1236"; ctx.fillRect(0,12,9,23);
+          ctx.fillStyle="#fff"; ctx.fillRect(0,-13,7,7); ctx.fillStyle="#1f1f2a"; ctx.fillRect(4,-10,3,3);
+        }
+        ctx.fillStyle="#552b17"; ctx.fillRect(-28, -44, 56, 12);
+        ctx.fillStyle="#f26f3b"; ctx.fillRect(-25, -41, Math.max(0, boss.shotsLeft) * 10, 6);
+        ctx.restore();
+      }
+    }
+
+    function getBossWaveRect(wave) {
+      return { x: wave.x - W, y: wave.y - 9, width: W, height: 18 };
     }
 
     function drawFruits() {
@@ -1116,13 +1262,15 @@
       ctx.save(); ctx.translate(birdX, birdY); ctx.rotate(tilt);
       if (shieldCharges > 0) { ctx.strokeStyle = "rgba(214,255,242,.75)"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, 25 + Math.sin(frame / 8) * 2, 0, Math.PI * 2); ctx.stroke(); }
       if (frame < boostGraceUntil) { ctx.strokeStyle = "rgba(255,241,138,.78)"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, 27 + Math.sin(frame / 5) * 3, 0, Math.PI * 2); ctx.stroke(); }
-      if (birdKind === "owl") owl(wingUp); else if (birdKind === "parrot") parrot(wingUp); else if (birdKind === "phoenix") phoenix(wingUp); else chick(wingUp);
+      if (birdKind === "owl") owl(wingUp); else if (birdKind === "parrot") parrot(wingUp); else if (birdKind === "phoenix") phoenix(wingUp); else if (birdKind === "ikun-classic" || birdKind === "ikun-silver") ikun(wingUp, birdKind); else chick(wingUp);
       ctx.restore();
     }
     function chick(wingUp) { const p=palette; ctx.fillStyle=p.shadow;ctx.fillRect(-17,-11,30,25);ctx.fillStyle=p.body;ctx.fillRect(-14,-15,27,26);ctx.fillStyle=p.belly;ctx.fillRect(-7,-6,22,18);ctx.fillStyle=p.beak;ctx.fillRect(8,-3,20,8);ctx.fillStyle=p.shadow;ctx.fillRect(19,1,8,4);eye(3,-12);ctx.fillStyle=p.wing;ctx.fillRect(-19,wingUp?-2:6,17,12);ctx.fillStyle=p.body;ctx.fillRect(-16,wingUp?-6:9,13,8); }
     function owl(wingUp) { const p=palette; ctx.fillStyle=p.shadow;ctx.fillRect(-17,-16,31,31);ctx.fillStyle=p.body;ctx.fillRect(-14,-18,28,31);ctx.fillStyle=p.belly;ctx.fillRect(-9,-5,18,16);ctx.fillStyle=p.shadow;ctx.fillRect(-15,-22,9,8);ctx.fillRect(5,-22,9,8);eye(-8,-13);eye(4,-13);ctx.fillStyle=p.beak;ctx.fillRect(0,-5,8,7);ctx.fillStyle=p.wing;ctx.fillRect(-22,wingUp?-7:3,12,18);ctx.fillRect(10,wingUp?-5:5,12,18); }
     function parrot(wingUp) { const p=palette; ctx.fillStyle=p.shadow;ctx.fillRect(-18,-12,32,27);ctx.fillStyle=p.body;ctx.fillRect(-15,-16,30,27);ctx.fillStyle=p.belly;ctx.fillRect(-2,-7,16,18);ctx.fillStyle="#fff8d9";ctx.fillRect(1,-15,12,12);ctx.fillStyle=p.wing;ctx.fillRect(-24,wingUp?-5:4,18,16);ctx.fillStyle="#2e68c9";ctx.fillRect(-20,wingUp?7:15,15,7);ctx.fillStyle=p.beak;ctx.fillRect(9,-7,24,10);ctx.fillStyle="#2f1b18";ctx.fillRect(21,0,10,5);ctx.fillStyle=p.shadow;ctx.fillRect(25,4,6,4);ctx.fillStyle="#39c96e";ctx.fillRect(-16,12,9,22);ctx.fillStyle="#f26f3b";ctx.fillRect(-7,12,8,25);ctx.fillStyle="#54a7f7";ctx.fillRect(1,12,7,20);ctx.fillStyle=p.wing;ctx.fillRect(-12,-25,7,10);ctx.fillStyle="#f26f3b";ctx.fillRect(-5,-28,7,12);ctx.fillStyle="#54a7f7";ctx.fillRect(2,-25,6,9);eye(4,-13); }
     function phoenix(wingUp) { ctx.fillStyle="#8b5a05";ctx.fillRect(-20,-11,35,27);ctx.fillStyle="#f5c542";ctx.fillRect(-16,-17,31,29);ctx.fillStyle="#fff18a";ctx.fillRect(-7,-7,18,18);ctx.fillStyle="#f26f3b";ctx.fillRect(-29,wingUp?-8:0,22,18);ctx.fillRect(8,wingUp?-7:1,21,18);ctx.fillStyle="#fff8bd";ctx.fillRect(-25,wingUp?-12:-4,14,8);ctx.fillRect(13,wingUp?-12:-4,15,8);ctx.fillStyle="#ff9a35";ctx.fillRect(8,-7,24,9);ctx.fillStyle="#6a2146";ctx.fillRect(22,0,8,4);ctx.fillStyle="#fff18a";ctx.fillRect(-13,-28,6,12);ctx.fillStyle="#f26f3b";ctx.fillRect(-5,-31,7,15);ctx.fillStyle="#fff18a";ctx.fillRect(3,-27,6,11);ctx.fillStyle="#f26f3b";ctx.fillRect(-18,13,8,25);ctx.fillStyle="#f5c542";ctx.fillRect(-9,13,8,30);ctx.fillStyle="#fff18a";ctx.fillRect(0,13,8,25);eye(3,-13); }
+    function ikun(wingUp, variant) { drawIkunShape(ctx, variant, wingUp); }
+    function drawIkunShape(c, variant, wingUp) { const silver=variant==="ikun-silver"; c.fillStyle="#1f1f2a";c.fillRect(-17,-11,30,25);c.fillStyle="#f5c542";c.fillRect(-14,-15,28,26);c.fillStyle="#fff18a";c.fillRect(-5,-8,17,17);c.fillStyle=silver?"#c8c8c8":"#2d2a2a";c.fillRect(-18,-25,25,12);c.fillRect(3,-22,16,10);c.fillRect(-20,-17,10,10);c.fillStyle="#fff";c.fillRect(-8,-12,9,9);c.fillRect(3,-12,9,9);c.fillStyle="#1f1f2a";c.fillRect(-5,-9,3,3);c.fillRect(5,-9,3,3);c.fillStyle="#ff9a35";c.fillRect(-30,-5,22,9);c.fillStyle="#6a2146";c.fillRect(-31,0,9,4);c.fillStyle="#e85b7d";c.fillRect(-15,0,6,6);c.fillRect(10,0,6,6);c.fillStyle="#111";c.fillRect(-12,8,27,12);c.fillStyle="#fff";c.fillRect(-9,8,3,12);c.fillRect(5,8,3,12);c.fillStyle=silver?"#7b5125":"#d99812";c.fillRect(15,3,15,19);c.fillStyle="#6b4a2c";c.fillRect(20,7,13,3);c.fillRect(20,15,13,3);c.fillStyle="#222";c.fillRect(-24,wingUp?-5:4,12,15); }
     function eye(x,y){ctx.fillStyle="#fff";ctx.fillRect(x,y,8,8);ctx.fillStyle="#1f1f2a";ctx.fillRect(x+4,y+3,3,3);}
 
     function drawPowerHud() {
@@ -1184,6 +1332,7 @@
     function playNpcCheer(v){if(!audioContext)return;const p=[[740,920],[660,880],[820,1040],[590,760]][v%4];tone(audioContext,p[0],0,.045,.016,"triangle");tone(audioContext,p[1],.055,.05,.014,"triangle");}
     function playFruit(type){const ac=getAudioContext();if(!ac)return;const base=type==="boost"?1046:type==="shield"?784:698;tone(ac,base,0,.055,.045,"triangle");tone(ac,base*1.25,.055,.08,.04,"sine");}
     function playBreak(){const ac=getAudioContext();if(!ac)return;tone(ac,220,0,.06,.035,"square");tone(ac,330,.045,.08,.03,"triangle");}
+    function playBossWave(){const ac=getAudioContext();if(!ac)return;tone(ac,160,0,.12,.035,"sawtooth");tone(ac,110,.08,.16,.025,"sine");}
     function playCrash(){const ac=getAudioContext();if(!ac||!soundEnabled)return;const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="sawtooth";o.frequency.setValueAtTime(180,now);o.frequency.exponentialRampToValueAtTime(52,now+.28);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(outputVolume(.16),now+.02);g.gain.exponentialRampToValueAtTime(.001,now+.32);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.34);}
     function tone(ac,f,delay,dur,vol,type){if(!soundEnabled)return;const s=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(.001,s);g.gain.exponentialRampToValueAtTime(outputVolume(vol),s+.012);g.gain.exponentialRampToValueAtTime(.001,s+dur);o.connect(g);g.connect(ac.destination);o.start(s);o.stop(s+dur+.02);}
     function clamp(v,min,max){return Math.min(Math.max(v,min),max);} function smoothStep(v){return v*v*(3-2*v);} function intersects(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;}
@@ -1200,7 +1349,7 @@
       flap();
     }
     const canvasButton = document.getElementById("canvasButton");
-    document.getElementById("shopBtn").addEventListener("click", (event) => { event.stopPropagation(); renderShop(); shopModal.classList.remove("hidden"); });
+    document.getElementById("shopBtn").addEventListener("click", (event) => { event.stopPropagation(); renderShop(); shopModal.classList.remove("hidden"); checkLeaderboardRewards(); });
     document.getElementById("achievementBtn").addEventListener("click", (event) => { event.stopPropagation(); renderAchievements(); achievementModal.classList.remove("hidden"); });
     document.getElementById("rankBtn").addEventListener("click", (event) => { event.stopPropagation(); openLeaderboard(); });
     document.getElementById("closeShopBtn").addEventListener("click", () => shopModal.classList.add("hidden"));
