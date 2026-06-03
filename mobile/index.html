@@ -733,8 +733,11 @@
       const wave = Math.sin(seed * 1.7) * range;
       const gapSize = clamp(difficulty.gap + rhythm.gapBonus, 136, 196);
       const gapY = clamp(238 + wave + ((seed * 43) % Math.max(40, range)), 150, H - groundH - 142);
-      const moving = scoreValue >= 50 && ((seed * 37 + scoreValue) % 100) < difficulty.movingChance * 100 && rhythm.type !== "easy";
-      return { x, gapY, baseGapY: gapY, gapSize, passed: false, scoreValue, moving, rhythm: rhythm.type, mechanism: createMechanism(scoreValue, rhythm), hazard: createPipeHazard(scoreValue, rhythm) };
+      const holdSpecial = shouldHoldSpecialThreat();
+      const moving = !holdSpecial && scoreValue >= 50 && ((seed * 37 + scoreValue) % 100) < difficulty.movingChance * 100 && rhythm.type !== "easy";
+      const mechanism = (!holdSpecial && !moving) ? createMechanism(scoreValue, rhythm) : null;
+      const hazard = (!holdSpecial && !moving && !mechanism) ? createPipeHazard(scoreValue, rhythm) : null;
+      return { x, gapY, baseGapY: gapY, gapSize, passed: false, scoreValue, moving, rhythm: rhythm.type, mechanism, hazard };
     }
 
     function getPipeSpacing(scoreValue) {
@@ -758,6 +761,28 @@
       if (scoreValue % 7 === 0 && scoreValue % 14 !== 7) return { kind: "fire", side: scoreValue % 2 ? "top" : "bottom", phase: scoreValue * 13 };
       if (scoreValue % 6 === 0 && scoreValue % 12 !== 6) return { kind: "spike", side: scoreValue % 2 ? "top" : "bottom", phase: scoreValue * 9 };
       return null;
+    }
+
+    function pipeHasSpecialThreat(pipe) {
+      return !!(pipe && (pipe.mechanism || pipe.hazard || pipe.moving));
+    }
+
+    function shouldHoldSpecialThreat() {
+      return activeSpecialThreatCount() >= 2 || pipeHasSpecialThreat(pipes[pipes.length - 1]);
+    }
+
+    function activeSpecialThreatCount() {
+      const left = birdX - 38, right = W + 68;
+      let count = 0;
+      for (const pipe of pipes) {
+        if (pipe.x + pipeW < left || pipe.x > right) continue;
+        if (pipe.mechanism) count++;
+        if (pipe.hazard) count++;
+        if (pipe.moving) count++;
+      }
+      count += arrows.filter((arrow) => arrow.x > left && arrow.x < right).length;
+      count += bossWaves.filter((wave) => wave.x > left && wave.x < right).length;
+      return count;
     }
 
     function hasBossAtScore(scoreValue) {
@@ -807,6 +832,7 @@
         boss.x += ((boss.targetX || W - 78) - boss.x) * .045;
         boss.y = (boss.baseY || boss.y) + Math.sin(frame / 28 + boss.scoreValue) * (boss.type === "ikunTwin" ? 5 : 4);
         if (!boss.done && frame >= boss.nextShot && boss.shotsLeft > 0) {
+          if (activeSpecialThreatCount() >= 2) { boss.nextShot = frame + 18; continue; }
           if (boss.attackKind === "chicken") bossWaves.push({ kind: "chicken", x: boss.x - 26, y: boss.y + (boss.shotsLeft % 2 ? -16 : 16), speed: 4.9, type: boss.type, born: frame, seed: boss.shotsLeft });
           else bossWaves.push({ kind: boss.attackKind === "shock" ? "shock" : "wave", x: boss.x - 20, y: boss.y + (boss.shotsLeft % 2 ? -18 : 18), speed: 4.1 + (boss.scoreValue >= 100 ? .45 : 0), type: boss.type, born: frame });
           boss.shotsLeft--;
@@ -894,7 +920,8 @@
         }
       }
       for (const fruit of fruits) fruit.x -= speed;
-      for (const arrow of arrows) arrow.x -= arrow.speed * speedScale;
+      const arrowMoveScale = Math.max(speedScale, .85);
+      for (const arrow of arrows) arrow.x -= Math.max(arrow.speed || 2.45, 2.35) * arrowMoveScale;
       if (pipes[0] && pipes[0].x + pipeW < -16) {
         pipes.shift();
         const last = pipes[pipes.length - 1];
@@ -910,7 +937,7 @@
       arrows = arrows.filter((arrow) => arrow.x > -70);
       updateBosses();
       const twinBossActive = bosses.some((boss) => boss.scoreValue === 150 && !boss.done);
-      if (score >= 50 && !twinBossActive && frame % (isChallengeSegment(score) ? 220 : difficulty.arrowRate) === 0 && arrows.length < (isChallengeSegment(score) ? 2 : 2)) arrows.push(createArrow(frame + score, score));
+      if (score >= 50 && !twinBossActive && frame % (isChallengeSegment(score) ? 220 : difficulty.arrowRate) === 0 && activeSpecialThreatCount() < 2 && arrows.length < 2) arrows.push(createArrow(frame + score, score));
       const birdRect = { x: birdX - birdSize / 2 + 4, y: birdY - birdSize / 2 + 3, width: birdSize - 8, height: birdSize - 6 };
       const floorY = H - groundH;
       const hitCeiling = birdRect.y <= 0;
