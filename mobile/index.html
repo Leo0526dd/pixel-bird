@@ -52,6 +52,7 @@
     .swatches button.active {
       box-shadow: inset -3px -3px 0 rgba(0,0,0,.18), inset 0 0 0 3px #fff0b8, 0 0 0 3px #f26f3b;
     }
+    .swatches button.locked { filter: grayscale(.85) brightness(.78); position: relative; }
     .canvas-button {
       width: 100%; aspect-ratio: 432 / 640; display: block; padding: 0; overflow: hidden; cursor: pointer;
       border: 5px solid #552b17; border-radius: 8px; background: #6ec6f1;
@@ -154,9 +155,28 @@
       { id: "mint", name: "薄荷", body: "#58cfa6", belly: "#d6fff2", wing: "#2d917c", beak: "#ffc34d", shadow: "#226558" },
       { id: "sky", name: "蓝天", body: "#54a7f7", belly: "#d8f1ff", wing: "#2e68c9", beak: "#ffb24a", shadow: "#224386" }
     ];
+    const stageList = [
+      { id: 1, min: 0, name: "Stage 1 白天", sky: "clear", pipeTint: "green" },
+      { id: 2, min: 20, name: "Stage 2 黄昏", sky: "sunset", pipeTint: "green" },
+      { id: 3, min: 50, name: "Stage 3 夜晚", sky: "night", pipeTint: "violet" },
+      { id: 4, min: 100, name: "Stage 4 暴风雨", sky: "storm", pipeTint: "steel" }
+    ];
+    const achievementList = [
+      { id: "score20", score: 20, text: "稳定起飞" },
+      { id: "score50", score: 50, text: "穿越黄昏" },
+      { id: "score100", score: 100, text: "夜航高手" },
+      { id: "score150", score: 150, text: "风暴挑战者" }
+    ];
+    const unlockList = [
+      { id: "berry", cost: 8, text: "莓果颜色" },
+      { id: "mint", cost: 16, text: "薄荷颜色" },
+      { id: "sky", cost: 28, text: "蓝天颜色" },
+      { id: "storm-theme", cost: 40, text: "风暴背景主题" }
+    ];
     let status = "ready", score = 0, best = Number(localStorage.getItem("pixel-bird-offline-best") || 0);
     let birdY = 220, velocity = 0, pipes = [], fruits = [], arrows = [], effects = [], frame = 0, runFrame = 0, birdKind = "chick", palette = palettes[0];
     let shieldCharges = 0, shieldGraceUntil = 0, boostUntil = 0, boostPipesLeft = 0, destroyCharges = 0, audioContext = null, ambient = null, npcCheerFrame = -999, lastTouchAt = 0;
+    let rewardState = loadRewards(), runReward = null, lastStageId = 1;
     let soundEnabled = localStorage.getItem("pixel-bird-sound") !== "off", masterVolume = .78;
     let playerName = localStorage.getItem("pixel-bird-player-name") || "小飞鸟";
     let hasNamed = false;
@@ -174,7 +194,12 @@
       playerNameInput.value = playerName;
       nameModal.classList.toggle("hidden", hasNamed);
       [...document.querySelectorAll("[data-kind]")].forEach((b) => b.classList.toggle("active", b.dataset.kind === birdKind));
-      [...document.querySelectorAll("[data-color]")].forEach((b) => b.classList.toggle("active", b.dataset.color === palette.id));
+      [...document.querySelectorAll("[data-color]")].forEach((b) => {
+        const locked = !isUnlocked(b.dataset.color);
+        b.classList.toggle("active", b.dataset.color === palette.id);
+        b.classList.toggle("locked", locked);
+        b.title = locked ? `${getUnlockCost(b.dataset.color)}金币解锁` : b.getAttribute("aria-label");
+      });
     }
 
     function initControls() {
@@ -189,7 +214,22 @@
       palettes.forEach((p) => {
         const btn = document.createElement("button");
         btn.title = p.name; btn.dataset.color = p.id; btn.style.background = p.body;
-        btn.onclick = (event) => { event.stopPropagation(); palette = p; syncUi(); };
+        btn.onclick = (event) => {
+          event.stopPropagation();
+          if (!isUnlocked(p.id)) {
+            const cost = getUnlockCost(p.id);
+            if (rewardState.coins >= cost) {
+              rewardState.coins -= cost;
+              rewardState.unlocks.push(p.id);
+              saveRewards();
+              playMilestone();
+            } else {
+              playCrash();
+              return;
+            }
+          }
+          palette = p; syncUi();
+        };
         colorBox.appendChild(btn);
       });
       syncUi();
@@ -197,6 +237,77 @@
 
     function updateAudioPanel() {
       audioPanel.classList.toggle("hidden", status === "playing" && runFrame >= startBufferFrames);
+    }
+
+    function loadRewards() {
+      try {
+        return JSON.parse(localStorage.getItem("pixel-bird-rewards") || "") || { coins: 0, xp: 0, achievements: [], unlocks: ["sunny"] };
+      } catch {
+        return { coins: 0, xp: 0, achievements: [], unlocks: ["sunny"] };
+      }
+    }
+
+    function saveRewards() {
+      localStorage.setItem("pixel-bird-rewards", JSON.stringify(rewardState));
+    }
+
+    function isUnlocked(id) {
+      return id === "sunny" || rewardState.unlocks.includes(id);
+    }
+
+    function getUnlockCost(id) {
+      return unlockList.find((item) => item.id === id)?.cost || 0;
+    }
+
+    function getDifficulty(scoreValue) {
+      const ramp20 = smoothStep(clamp((scoreValue - 20) / 30, 0, 1));
+      const ramp50 = smoothStep(clamp((scoreValue - 50) / 50, 0, 1));
+      const ramp100 = smoothStep(clamp((scoreValue - 100) / 80, 0, 1));
+      const challenge = isChallengeSegment(scoreValue) ? 1 : 0;
+      return {
+        speed: pipeSpeed + ramp20 * .34 + ramp100 * .28 + challenge * .12,
+        gap: 178 - ramp50 * 18 - ramp100 * 10 - challenge * 6,
+        spacing: 252 - ramp20 * 10 - ramp50 * 16 - challenge * 8,
+        randomRange: 76 + ramp50 * 22 + ramp100 * 28,
+        wind: scoreValue >= 100 ? (.018 + ramp100 * .012) : 0,
+        movingChance: scoreValue >= 50 ? clamp((scoreValue - 50) / 120, 0, .28) : 0,
+        arrowRate: scoreValue >= 100 ? 230 : scoreValue >= 50 ? 270 : 320
+      };
+    }
+
+    function getStage(scoreValue) {
+      let stage = stageList[0];
+      for (const next of stageList) if (scoreValue >= next.min) stage = next;
+      return stage;
+    }
+
+    function getRhythm(scoreValue) {
+      const pattern = ["easy", "medium", "hard", "medium", "easy"];
+      const type = pattern[Math.max(0, scoreValue - 1) % pattern.length];
+      return {
+        type,
+        gapBonus: type === "easy" ? 16 : type === "hard" ? -10 : 0,
+        spacingBonus: type === "easy" ? 18 : type === "hard" ? -10 : 0,
+        randomBonus: type === "hard" ? 18 : type === "easy" ? -12 : 0,
+        hazardBias: type === "hard" ? 1 : type === "easy" ? -1 : 0
+      };
+    }
+
+    function isChallengeSegment(scoreValue) {
+      return scoreValue >= 150 && scoreValue % 60 >= 0 && scoreValue % 60 < 12;
+    }
+
+    function finalizeRewards(finalScore) {
+      const coins = Math.max(1, Math.floor(finalScore / 5) + (finalScore >= 50 ? 3 : 0));
+      const xp = finalScore * 2 + coins;
+      const newAchievements = achievementList.filter((a) => finalScore >= a.score && !rewardState.achievements.includes(a.id));
+      const newUnlocks = [];
+      rewardState.coins += coins;
+      rewardState.xp += xp;
+      rewardState.achievements.push(...newAchievements.map((a) => a.id));
+      rewardState.unlocks.push(...newUnlocks.map((u) => u.id));
+      saveRewards();
+      return { coins, xp, newAchievements, newUnlocks };
     }
 
     function normalizeName() {
@@ -223,27 +334,41 @@
 
     function resetGame() {
       score = 0; birdY = 220; velocity = 0; frame = 0; runFrame = 0; shieldCharges = 0; shieldGraceUntil = 0; boostUntil = 0; boostPipesLeft = 0; destroyCharges = 0;
-      effects = []; arrows = [];
+      effects = []; arrows = []; runReward = null; lastStageId = getStage(0).id;
       const firstPipeX = isWechat ? W + 300 : W + 240;
-      pipes = [createPipe(firstPipeX, 0, 1), createPipe(firstPipeX + pipeSpacing, 1, 2), createPipe(firstPipeX + pipeSpacing * 2, 2, 3)];
+      pipes = [createPipe(firstPipeX, 0, 1)];
+      pipes.push(createPipe(pipes[0].x + getPipeSpacing(2), 1, 2));
+      pipes.push(createPipe(pipes[1].x + getPipeSpacing(3), 2, 3));
       fruits = [createFruit(W + 560, 0)];
       syncUi();
     }
 
     function createPipe(x, seed, scoreValue) {
-      const wave = Math.sin(seed * 1.7) * 70;
-      const gapY = clamp(238 + wave + ((seed * 43) % 86), 168, H - groundH - 152);
-      return { x, gapY, passed: false, scoreValue, mechanism: createMechanism(scoreValue), hazard: createPipeHazard(scoreValue) };
+      const difficulty = getDifficulty(scoreValue);
+      const rhythm = getRhythm(scoreValue);
+      const range = difficulty.randomRange + rhythm.randomBonus;
+      const wave = Math.sin(seed * 1.7) * range;
+      const gapSize = clamp(difficulty.gap + rhythm.gapBonus, 136, 196);
+      const gapY = clamp(238 + wave + ((seed * 43) % Math.max(40, range)), 150, H - groundH - 142);
+      const moving = scoreValue >= 50 && ((seed * 37 + scoreValue) % 100) < difficulty.movingChance * 100 && rhythm.type !== "easy";
+      return { x, gapY, baseGapY: gapY, gapSize, passed: false, scoreValue, moving, rhythm: rhythm.type, mechanism: createMechanism(scoreValue, rhythm), hazard: createPipeHazard(scoreValue, rhythm) };
     }
 
-    function createMechanism(scoreValue) {
+    function getPipeSpacing(scoreValue) {
+      const difficulty = getDifficulty(scoreValue), rhythm = getRhythm(scoreValue);
+      return clamp(difficulty.spacing + rhythm.spacingBonus, 210, 272);
+    }
+
+    function createMechanism(scoreValue, rhythm) {
       if (scoreValue < 4 || scoreValue % 10 === 0 || scoreValue % 3 !== 0) return null;
+      if (rhythm.type === "easy" && scoreValue % 6 !== 0) return null;
       const kinds = ["gear", "spinner", "spark", "blade", "drop"];
       return { kind: kinds[scoreValue % kinds.length], offsetY: scoreValue % 2 === 0 ? -34 : 34 };
     }
 
-    function createPipeHazard(scoreValue) {
+    function createPipeHazard(scoreValue, rhythm) {
       if (scoreValue < 3 || scoreValue % 10 === 0) return null;
+      if (rhythm.type === "easy") return null;
       if (scoreValue % 7 === 0) return { kind: "fire", side: scoreValue % 2 ? "top" : "bottom", phase: scoreValue * 13 };
       if (scoreValue % 5 === 0) return { kind: "spike", side: scoreValue % 2 ? "top" : "bottom", phase: scoreValue * 9 };
       return null;
@@ -281,22 +406,31 @@
         birdY += Math.sin(frame / 10) * .28;
         return;
       }
+      const difficulty = getDifficulty(score);
       const boosting = frame < boostUntil && boostPipesLeft > 0;
       const speedScale = score === 0 ? .9 : 1;
       if (boosting) {
         velocity *= .72;
         birdY += (H * .43 - birdY) * .045;
       } else {
+        if (difficulty.wind) velocity += Math.sin(frame / 52) * difficulty.wind;
         velocity += gravity;
         birdY += velocity;
       }
-      const speed = (boosting ? pipeSpeed * 2.15 : pipeSpeed) * speedScale;
+      const speed = (boosting ? difficulty.speed * 2.1 : difficulty.speed) * speedScale;
       for (const pipe of pipes) {
         pipe.x -= speed;
+        if (pipe.moving) pipe.gapY = clamp(pipe.baseGapY + Math.sin((frame + pipe.scoreValue * 17) / 45) * 24, 142, H - groundH - 132);
         if (!pipe.passed && pipe.x + pipeW < birdX - birdSize / 2) {
           pipe.passed = true;
           const nextScore = score + 1, milestone = nextScore % 10 === 0, record = nextScore > best;
           score = nextScore;
+          const nextStage = getStage(score);
+          if (nextStage.id !== lastStageId) {
+            lastStageId = nextStage.id;
+            effects.push({ kind: "stage", x: W / 2, y: 118, start: frame, life: 110, text: nextStage.name });
+            playMilestone();
+          }
           if (boosting) boostPipesLeft--;
           milestone ? playMilestone() : playScore();
           if (record) { best = nextScore; localStorage.setItem("pixel-bird-offline-best", String(best)); playRecord(milestone ? .16 : 0); }
@@ -308,13 +442,13 @@
       if (pipes[0] && pipes[0].x + pipeW < -16) {
         pipes.shift();
         const last = pipes[pipes.length - 1];
-        pipes.push(createPipe(last.x + pipeSpacing, frame, last.scoreValue + 1));
+        pipes.push(createPipe(last.x + getPipeSpacing(last.scoreValue + 1), frame, last.scoreValue + 1));
       }
       if (fruits[0] && fruits[0].x < -40) fruits.shift();
       const lastFruitX = fruits.length ? fruits[fruits.length - 1].x : W;
       if (lastFruitX < W + pipeSpacing * 3.2) fruits.push(createFruit(lastFruitX + pipeSpacing * (3.1 + (score % 2) * .6), frame + score));
       arrows = arrows.filter((arrow) => arrow.x > -70);
-      if (score >= 3 && frame % 260 === 0 && arrows.length < 2) arrows.push(createArrow(frame + score));
+      if (score >= 50 && frame % (isChallengeSegment(score) ? 190 : difficulty.arrowRate) === 0 && arrows.length < (isChallengeSegment(score) ? 3 : 2)) arrows.push(createArrow(frame + score));
       const birdRect = { x: birdX - birdSize / 2 + 4, y: birdY - birdSize / 2 + 3, width: birdSize - 8, height: birdSize - 6 };
       const floorY = H - groundH;
       const hitCeiling = birdRect.y <= 0;
@@ -325,7 +459,7 @@
       const shieldActive = shieldCharges > 0 || frame < shieldGraceUntil;
       let obstacleHit = false;
       for (const pipe of pipes) {
-        const topH = pipe.gapY - pipeGap / 2, bottomY = pipe.gapY + pipeGap / 2, mech = getMechanismRect(pipe);
+        const topH = pipe.gapY - pipe.gapSize / 2, bottomY = pipe.gapY + pipe.gapSize / 2, mech = getMechanismRect(pipe);
         if (boosting) continue;
         const hitMech = mech && intersects(birdRect, mech);
         if (hitMech && destroyCharges > 0) { breakMechanism(pipe, mech); continue; }
@@ -377,6 +511,7 @@
       if (status === "ended") return;
       playCrash();
       best = Math.max(best, score); localStorage.setItem("pixel-bird-offline-best", String(best));
+      runReward = finalizeRewards(score);
       status = "ended"; syncUi();
     }
 
@@ -392,6 +527,10 @@
     }
 
     function getWeather(frame) {
+      const stage = getStage(score);
+      if (stage.id === 2) return { current: "sunset", next: "sunset", blend: 0 };
+      if (stage.id === 3) return { current: "night", next: "night", blend: 0 };
+      if (stage.id === 4) return { current: "storm", next: "storm", blend: 0 };
       const index = Math.floor(frame / weatherDurationFrames), inWeather = frame % weatherDurationFrames;
       const current = weatherCycle[index % weatherCycle.length], next = weatherCycle[(index + 1) % weatherCycle.length];
       const blend = smoothStep(clamp((inWeather - (weatherDurationFrames - weatherBlendFrames)) / weatherBlendFrames, 0, 1));
@@ -400,7 +539,7 @@
 
     function drawGame(weather) {
       ctx.clearRect(0, 0, W, H);
-      drawSky(weather); drawBoostTrail(); drawFruits(); drawPipes(); drawArrows(); drawGround(); drawNpcs(); drawEffects(); drawWeather(weather); drawBird(); drawPowerHud(); drawScore();
+      drawSky(weather); drawBoostTrail(); drawFruits(); drawPipes(); drawArrows(); drawGround(); drawNpcs(); drawEffects(); drawWeather(weather); drawBird(); drawProgressHud(); drawPowerHud(); drawScore();
       if (status !== "playing" || runFrame < startBufferFrames) drawOverlay();
     }
 
@@ -415,6 +554,9 @@
       const g = ctx.createLinearGradient(0, 0, 0, H);
       if (weather === "cloudy" || weather === "rainy") { g.addColorStop(0, "#7e9fb3"); g.addColorStop(.55, "#a7bdc4"); g.addColorStop(1, "#d2c887"); }
       else if (weather === "snowy") { g.addColorStop(0, "#9dc9e5"); g.addColorStop(.55, "#cfe8f5"); g.addColorStop(1, "#eef3e2"); }
+      else if (weather === "sunset") { g.addColorStop(0, "#f08b5f"); g.addColorStop(.55, "#f7c26d"); g.addColorStop(1, "#8fb46a"); }
+      else if (weather === "night") { g.addColorStop(0, "#17254d"); g.addColorStop(.58, "#30477a"); g.addColorStop(1, "#6d7649"); }
+      else if (weather === "storm") { g.addColorStop(0, "#3f5265"); g.addColorStop(.55, "#667c89"); g.addColorStop(1, "#697650"); }
       else { g.addColorStop(0, "#6ec6f1"); g.addColorStop(.55, "#93dcff"); g.addColorStop(1, "#f8d982"); }
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     }
@@ -426,8 +568,9 @@
       cloud(42 - (frame * (.2 + wind)) % 520, 74, 1, tint);
       cloud(282 - (frame * (.14 + wind)) % 560, 134, .82, tint);
       cloud(462 - (frame * (.1 + wind)) % 560, 48, .72, tint);
-      if (weather === "cloudy" || weather === "rainy") cloud(174 - (frame * .16) % 560, 34, .95, "#c6cdd2");
-      if (weather !== "rainy" && weather !== "cloudy") { ctx.fillStyle = "#fff6b0"; ctx.fillRect(318, 42, 42, 42); ctx.fillStyle = "#ffd867"; ctx.fillRect(326, 50, 26, 26); }
+      if (weather === "cloudy" || weather === "rainy" || weather === "storm") cloud(174 - (frame * .16) % 560, 34, .95, "#c6cdd2");
+      if (weather === "night") { ctx.fillStyle = "#f5f0c8"; ctx.fillRect(322, 42, 34, 34); ctx.fillStyle = "#17254d"; ctx.fillRect(334, 38, 28, 34); }
+      else if (weather !== "rainy" && weather !== "cloudy" && weather !== "storm") { ctx.fillStyle = "#fff6b0"; ctx.fillRect(318, 42, 42, 42); ctx.fillStyle = "#ffd867"; ctx.fillRect(326, 50, 26, 26); }
       else { ctx.fillStyle = "rgba(255,244,168,.38)"; ctx.fillRect(326, 50, 26, 26); }
       ctx.restore();
     }
@@ -445,7 +588,7 @@
     function drawWeatherLayer(weather, alpha) {
       if (alpha <= 0) return;
       ctx.save(); ctx.globalAlpha = alpha;
-      if (weather === "rainy") {
+      if (weather === "rainy" || weather === "storm") {
         ctx.strokeStyle = "rgba(66,120,178,.72)"; ctx.lineWidth = 3;
         for (let i = 0; i < 34; i++) { const x = (i * 47 + frame * 1.4) % (W + 80) - 40, y = (i * 83 + frame * 4.2) % (H - groundH); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 10, y + 24); ctx.stroke(); }
       }
@@ -453,19 +596,19 @@
         ctx.fillStyle = "rgba(255,255,255,.88)";
         for (let i = 0; i < 38; i++) { const x = (i * 41 + Math.sin(frame / 36 + i) * 14) % W, y = (i * 67 + frame * .72) % (H - groundH), s = i % 3 === 0 ? 5 : 3; ctx.fillRect(x, y, s, s); }
       }
-      if (weather === "windy") {
+      if (weather === "windy" || weather === "storm") {
         ctx.strokeStyle = "rgba(255,255,255,.56)"; ctx.lineWidth = 4;
         for (let i = 0; i < 7; i++) { const x = (frame * 2.1 + i * 86) % (W + 130) - 90, y = 82 + i * 58 + Math.sin(frame / 34 + i) * 8; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 44, y); ctx.lineTo(x + 62, y - 8); ctx.stroke(); }
       }
-      if (weather === "cloudy") { ctx.fillStyle = "rgba(79,91,101,.12)"; ctx.fillRect(0, 0, W, H - groundH); }
+      if (weather === "cloudy" || weather === "storm" || weather === "night") { ctx.fillStyle = weather === "night" ? "rgba(8,12,30,.18)" : "rgba(79,91,101,.12)"; ctx.fillRect(0, 0, W, H - groundH); }
       ctx.restore();
     }
 
     function drawPipes() {
       const floorY = H - groundH;
       for (const pipe of pipes) {
-        const topH = pipe.gapY - pipeGap / 2, bottomY = pipe.gapY + pipeGap / 2, gold = pipe.scoreValue % 10 === 0;
-        pipePart(pipe.x, 0, pipeW, topH, true, gold); pipePart(pipe.x, bottomY, pipeW, floorY - bottomY, false, gold); pipeHazard(pipe, topH, bottomY); mechanism(pipe);
+        const topH = pipe.gapY - pipe.gapSize / 2, bottomY = pipe.gapY + pipe.gapSize / 2, gold = pipe.scoreValue % 10 === 0;
+        pipePart(pipe.x, 0, pipeW, topH, true, gold, pipe.rhythm); pipePart(pipe.x, bottomY, pipeW, floorY - bottomY, false, gold, pipe.rhythm); pipeHazard(pipe, topH, bottomY); mechanism(pipe);
       }
     }
 
@@ -497,7 +640,7 @@
 
     function pipeHazardHit(pipe, birdRect) {
       if (!pipe.hazard) return false;
-      const topH = pipe.gapY - pipeGap / 2, bottomY = pipe.gapY + pipeGap / 2;
+      const topH = pipe.gapY - pipe.gapSize / 2, bottomY = pipe.gapY + pipe.gapSize / 2;
       if (pipe.hazard.kind === "spike") {
         const y = pipe.hazard.side === "top" ? topH + 2 : bottomY - 18;
         return intersects(birdRect, { x: pipe.x + 8, y, width: pipeW - 16, height: 18 });
@@ -545,7 +688,10 @@
       for (const e of effects) {
         const t = (frame - e.start) / e.life, alpha = 1 - t;
         ctx.save(); ctx.globalAlpha = alpha; ctx.translate(e.x, e.y);
-        if (e.kind === "break") {
+        if (e.kind === "stage") {
+          ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "700 20px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+          ctx.lineWidth = 5; ctx.strokeStyle = "#552b17"; ctx.strokeText(e.text, 0, 0); ctx.fillStyle = "#fff3aa"; ctx.fillText(e.text, 0, 0);
+        } else if (e.kind === "break") {
           ctx.fillStyle = "#fff18a";
           for (let i = 0; i < 9; i++) { const a = i * .7, d = t * 42; ctx.fillRect(Math.cos(a) * d, Math.sin(a) * d, 7, 7); }
           ctx.strokeStyle = "#7d351b"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 12 + t * 26, 0, Math.PI * 2); ctx.stroke();
@@ -567,14 +713,18 @@
       ctx.restore();
     }
 
-    function pipePart(x, y, w, h, flip, gold) {
+    function pipePart(x, y, w, h, flip, gold, rhythm) {
       const capH = 28, capY = flip ? y + h - capH : y, bodyY = flip ? y : y + capH, bodyH = Math.max(h - capH, 0);
+      const stage = getStage(score);
       const c = gold ? { dark:"#8b5a05", body:"#d99812", shine:"#fff18a", edge:"#5e3900", capDark:"#7a4700", cap:"#f2b622" } :
+        stage.pipeTint === "violet" ? { dark:"#3b2f68", body:"#6b5ac8", shine:"#b8a8ff", edge:"#282052", capDark:"#33275f", cap:"#7e6de0" } :
+        stage.pipeTint === "steel" ? { dark:"#334852", body:"#5f7d87", shine:"#b8d2d8", edge:"#22343c", capDark:"#2a414b", cap:"#71929d" } :
         { dark:"#146b37", body:"#2fb85f", shine:"#92f27c", edge:"#0b4f2d", capDark:"#0f5d33", cap:"#39c96e" };
       ctx.fillStyle = c.dark; ctx.fillRect(x, bodyY, w, bodyH); ctx.fillStyle = c.body; ctx.fillRect(x + 7, bodyY, w - 14, bodyH);
       ctx.fillStyle = c.shine; ctx.fillRect(x + 13, bodyY, 10, bodyH); ctx.fillStyle = c.edge; ctx.fillRect(x + w - 12, bodyY, 7, bodyH);
       ctx.fillStyle = c.capDark; ctx.fillRect(x - 6, capY, w + 12, capH); ctx.fillStyle = c.cap; ctx.fillRect(x, capY + 5, w, capH - 10);
       ctx.fillStyle = c.shine; ctx.fillRect(x + 11, capY + 8, 12, capH - 16); if (gold) { ctx.fillStyle = "#fff8bd"; ctx.fillRect(x + w - 25, capY + 8, 8, 8); }
+      if (rhythm === "hard" && !gold) { ctx.fillStyle = "rgba(85,43,23,.28)"; ctx.fillRect(x + w - 20, bodyY, 6, bodyH); }
     }
 
     function mechanism(pipe) {
@@ -655,6 +805,14 @@
       ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "700 13px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
       items.forEach((item, i) => { const x = 12 + i * 64; ctx.fillStyle = "#552b17"; ctx.fillRect(x, 18, 58, 22); ctx.fillStyle = item[1]; ctx.fillRect(x + 3, 21, 52, 16); ctx.fillStyle = "#fff8d9"; ctx.fillText(item[0], x + 7, 29); });
     }
+
+    function drawProgressHud() {
+      const stage = getStage(score), challenge = isChallengeSegment(score);
+      ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "700 12px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+      ctx.fillStyle = "rgba(85,43,23,.78)"; ctx.fillRect(12, 48, challenge ? 118 : 92, 20);
+      ctx.fillStyle = "#fff8d9"; ctx.fillText(stage.name.replace("Stage ", "S"), 18, 58);
+      if (challenge) { ctx.fillStyle = "#f26f3b"; ctx.fillText("挑战段", 82, 58); }
+    }
     function drawScore() { ctx.textAlign="center";ctx.textBaseline="top";ctx.font="700 42px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.lineWidth=7;ctx.strokeStyle="#552b17";ctx.strokeText(String(score),W/2,25);ctx.fillStyle="#fff3aa";ctx.fillText(String(score),W/2,25); }
     function drawOverlay() {
       ctx.fillStyle="rgba(34,23,18,.36)";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff0b8";ctx.fillRect(54,192,W-108,184);ctx.fillStyle="#8d4f26";ctx.fillRect(54,192,W-108,10);ctx.fillRect(54,366,W-108,10);ctx.fillRect(54,192,10,184);ctx.fillRect(W-64,192,10,184);
@@ -663,7 +821,14 @@
       ctx.fillText(preparing?"准备":status==="ready"?"像素飞鸟":status==="paused"?"已暂停":`${playerName}，再接再厉！`,W/2,230);
       ctx.font="700 17px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
       ctx.fillText(status==="ended"?"May the force be with you！":preparing?"开局保护中":`本局 ${score}   最高 ${best}`,W/2,274);
-      ctx.fillStyle="#2e7d36";ctx.fillRect(118,314,196,34);ctx.fillStyle="#f7ffe8";ctx.font="700 17px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.fillText(preparing?"看准节奏再飞":status==="paused"?"Esc 继续游戏":"点击 / 空格 起飞",W/2,331);
+      if (status === "ended" && runReward) {
+        const nextUnlock = unlockList.find((item) => !rewardState.unlocks.includes(item.id));
+        const bonus = runReward.newAchievements.length ? `新成就 ${runReward.newAchievements[0].text}` : nextUnlock ? `目标 ${nextUnlock.text} ${rewardState.coins}/${nextUnlock.cost}金币` : `外观已全部解锁`;
+        ctx.fillStyle = "#5d2f18"; ctx.font="700 13px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+        ctx.fillText(`+${runReward.coins} 金币  +${runReward.xp} 经验`, W/2, 298);
+        ctx.fillText(bonus, W/2, 315);
+      }
+      ctx.fillStyle="#2e7d36";ctx.fillRect(118, status === "ended" ? 330 : 314,196,34);ctx.fillStyle="#f7ffe8";ctx.font="700 17px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.fillText(preparing?"看准节奏再飞":status==="paused"?"Esc 继续游戏":"点击 / 空格 起飞",W/2,status === "ended" ? 347 : 331);
     }
 
     function getAudioContext() { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; if (!audioContext) audioContext = new C(); if (audioContext.state === "suspended") audioContext.resume(); return audioContext; }
