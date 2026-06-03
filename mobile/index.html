@@ -407,10 +407,28 @@
       });
     }
 
+    async function loadCloudBaseSdk() {
+      const sources = [
+        "https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js",
+        "https://static.cloudbase.net/cloudbase-js-sdk/latest/cloudbase.full.js",
+        "https://static.cloudbase.net/cloudbase-js-sdk/3.0.1/cloudbase.full.js"
+      ];
+      let lastError = null;
+      for (const src of sources) {
+        try {
+          await loadScript(src);
+          if (window.cloudbase || window.tcb) return;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError || new Error("sdk load failed");
+    }
+
     async function getLeaderboardClient() {
       if (leaderboardClient) return leaderboardClient;
       if (!leaderboardConfig.enabled || !navigator.onLine) throw new Error("offline");
-      await loadScript("https://static.cloudbase.net/cloudbase-js-sdk/2.10.1/cloudbase.full.js");
+      await loadCloudBaseSdk();
       const cloudbaseApi = window.cloudbase || window.tcb;
       if (!cloudbaseApi) throw new Error("sdk");
       const app = cloudbaseApi.init({ env: leaderboardConfig.env });
