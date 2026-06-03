@@ -415,7 +415,18 @@
       if (!cloudbaseApi) throw new Error("sdk");
       const app = cloudbaseApi.init({ env: leaderboardConfig.env });
       const auth = app.auth({ persistence: "local" });
-      try { await auth.signInAnonymously(); } catch (error) {}
+      try {
+        if (typeof auth.signInAnonymously === "function") {
+          const result = await auth.signInAnonymously();
+          if (result && result.error) throw result.error;
+        } else if (typeof auth.anonymousAuthProvider === "function") {
+          await auth.anonymousAuthProvider().signIn();
+        } else {
+          throw new Error("anonymous auth unavailable");
+        }
+      } catch (error) {
+        throw new Error(`auth:${error?.message || error?.code || "failed"}`);
+      }
       leaderboardClient = app.database();
       return leaderboardClient;
     }
@@ -447,8 +458,18 @@
         renderRanks(result.data || [], "云端前十名");
       } catch (error) {
         const rows = JSON.parse(localStorage.getItem("pixel-bird-local-ranks") || "[]");
-        renderRanks(rows, "云端暂未连接，先显示本机记录");
+        const hint = getLeaderboardHint(error);
+        renderRanks(rows, `云端暂未连接：${hint}`);
       }
+    }
+
+    function getLeaderboardHint(error) {
+      const message = String(error?.message || error || "");
+      if (message.includes("offline")) return "当前设备离线";
+      if (message.includes("auth")) return "请开启匿名登录并添加安全域名";
+      if (message.includes("permission") || message.includes("PERMISSION")) return "请检查数据库安全规则";
+      if (message.includes("sdk")) return "CloudBase SDK 未加载";
+      return "先显示本机记录";
     }
 
     function renderRanks(rows, title) {
