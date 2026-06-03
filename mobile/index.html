@@ -98,7 +98,7 @@
       padding: 9px; border: 2px solid #7b5125; border-radius: 6px; background: #fff8d9;
       box-shadow: inset -2px -2px 0 rgba(117,70,28,.12);
     }
-    .achievement-item { grid-template-columns: 1fr 48px auto; }
+    .achievement-item { grid-template-columns: 1fr 64px auto; min-height: 64px; }
     .rank-item { grid-template-columns: 1fr auto auto; }
     .shop-item strong, .achievement-item strong, .rank-item strong { display: block; font-size: 14px; color: #4b2817; }
     .shop-item p, .achievement-item p, .rank-item p { margin: 3px 0 0; font-size: 11px; line-height: 1.35; color: #70411f; }
@@ -109,7 +109,7 @@
     }
     .achievement-item.locked { filter: grayscale(.45); opacity: .72; }
     .achievement-preview {
-      width: 44px; height: 36px; display: block; border: 2px solid #7b5125; border-radius: 5px;
+      width: 60px; height: 48px; display: block; border: 2px solid #7b5125; border-radius: 5px;
       background: #9fd8ef; box-shadow: inset -2px -2px 0 rgba(117,70,28,.12);
     }
     .rank-list { display: grid; gap: 7px; max-height: 390px; overflow-y: auto; padding-right: 3px; }
@@ -489,14 +489,15 @@
       const canvas = document.createElement("canvas");
       canvas.width = 88; canvas.height = 72; canvas.className = "achievement-preview";
       const c = canvas.getContext("2d"); c.imageSmoothingEnabled = false;
-      c.fillStyle = "#8ed0ee"; c.fillRect(0,0,88,72);
-      if (item.icon === "coin") { c.fillStyle="#8b5a05"; c.fillRect(28,16,32,32); c.fillStyle="#f5c542"; c.fillRect(33,20,22,24); c.fillStyle="#fff18a"; c.fillRect(38,24,8,8); }
-      else if (item.icon === "crow") { c.fillStyle="#1f1f2a"; c.fillRect(24,24,30,22); c.fillRect(16,30,16,12); c.fillStyle="#6b4a2c"; c.fillRect(49,31,18,7); c.fillStyle="#fff"; c.fillRect(41,27,6,6); }
-      else if (item.icon === "phoenix") { c.fillStyle="#2b1b29"; c.fillRect(24,22,31,25); c.fillStyle="#7c1732"; c.fillRect(12,28,22,14); c.fillRect(50,28,22,14); c.fillStyle="#f26f3b"; c.fillRect(35,12,14,14); }
-      else if (item.icon === "boss") { c.fillStyle="#552b17"; c.fillRect(20,18,42,28); c.fillStyle="#f26f3b"; c.fillRect(10,48,68,6); c.fillStyle="#fff18a"; c.fillRect(18,54,52,5); }
-      else if (item.icon === "storm") { c.fillStyle="#334852"; c.fillRect(0,0,88,72); c.fillStyle="#d8dee2"; c.fillRect(17,18,42,16); c.fillStyle="#fff18a"; c.fillRect(41,30,8,18); c.fillRect(33,43,8,14); }
-      else if (item.icon === "crown") { c.fillStyle="#8b5a05"; c.fillRect(23,42,42,10); c.fillStyle="#f5c542"; c.fillRect(25,24,9,22); c.fillRect(40,16,9,30); c.fillRect(55,24,9,22); c.fillStyle="#fff18a"; c.fillRect(41,20,7,7); }
-      else { c.fillStyle="#f6c65b"; c.fillRect(28,22,28,25); c.fillStyle="#ffe68c"; c.fillRect(37,31,18,15); c.fillStyle="#f07f2f"; c.fillRect(51,29,18,7); c.fillStyle="#1f1f2a"; c.fillRect(45,25,4,4); }
+      c.fillStyle = item.icon === "storm" ? "#334852" : item.icon === "phoenix" ? "#2f2748" : "#8ed0ee"; c.fillRect(0,0,88,72);
+      c.fillStyle = "rgba(255,255,255,.22)"; c.fillRect(0,0,88,18); c.fillStyle="#5d7b35"; c.fillRect(0,56,88,16);
+      if (item.icon === "coin") { c.fillStyle="#8b5a05"; c.fillRect(18,28,32,32); c.fillStyle="#f5c542"; c.fillRect(23,32,22,24); c.fillStyle="#fff18a"; c.fillRect(28,36,8,8); c.fillStyle="#fff0b8"; c.fillRect(56,22,20,12); c.fillStyle="#7b5125"; c.fillRect(60,26,12,4); }
+      else if (item.icon === "crow") { c.fillStyle="#1f1f2a"; c.fillRect(25,27,32,23); c.fillRect(14,33,18,12); c.fillRect(49,22,12,12); c.fillStyle="#6b4a2c"; c.fillRect(12,35,16,6); c.fillStyle="#fff"; c.fillRect(47,29,6,6); c.fillStyle="#f26f3b"; c.fillRect(2,34,12,4); }
+      else if (item.icon === "phoenix") { c.fillStyle="#2b1b29"; c.fillRect(30,23,28,24); c.fillStyle="#7c1732"; c.fillRect(12,31,26,14); c.fillRect(53,31,23,14); c.fillStyle="#f26f3b"; c.fillRect(36,12,14,18); c.fillStyle="#fff18a"; c.fillRect(40,16,6,8); c.fillStyle="#f26f3b"; c.fillRect(18,50,54,5); }
+      else if (item.icon === "boss") { c.fillStyle="#552b17"; c.fillRect(20,18,42,28); c.fillStyle="#2b1b29"; c.fillRect(28,12,30,12); c.fillStyle="#f26f3b"; c.fillRect(9,49,70,6); c.fillStyle="#fff18a"; c.fillRect(18,56,52,5); c.fillStyle="#fff"; c.fillRect(31,27,7,7); c.fillRect(48,27,7,7); }
+      else if (item.icon === "storm") { c.fillStyle="#d8dee2"; c.fillRect(14,16,48,16); c.fillRect(28,9,31,12); c.fillStyle="#fff18a"; c.fillRect(43,30,8,18); c.fillRect(34,44,9,14); c.fillStyle="#83c8ff"; c.fillRect(12,44,5,10); c.fillRect(65,42,5,12); }
+      else if (item.icon === "crown") { c.fillStyle="#8b5a05"; c.fillRect(22,44,44,10); c.fillStyle="#f5c542"; c.fillRect(24,25,9,22); c.fillRect(40,15,9,32); c.fillRect(56,25,9,22); c.fillStyle="#fff18a"; c.fillRect(41,20,7,7); c.fillStyle="#f26f3b"; c.fillRect(16,57,56,5); }
+      else { c.fillStyle="#f6c65b"; c.fillRect(26,24,28,25); c.fillStyle="#ffe68c"; c.fillRect(35,33,18,15); c.fillStyle="#f07f2f"; c.fillRect(18,31,20,7); c.fillStyle="#1f1f2a"; c.fillRect(38,27,4,4); c.fillStyle="#fff18a"; c.fillRect(59,18,14,14); }
       return canvas;
     }
 
@@ -775,7 +776,7 @@
     function spawnBossForScore(scoreValue) {
       if (!hasBossAtScore(scoreValue) || bosses.some((boss) => boss.scoreValue === scoreValue)) return;
       const bossName = scoreValue === 50 ? "乌鸦" : "黑凤凰";
-      bosses.push({ type: scoreValue === 50 ? "crow" : "darkPhoenix", scoreValue, x: W + 70, y: scoreValue === 50 ? 168 : 226, shotsLeft: 5, nextShot: frame + 70, fade: 0, done: false });
+      bosses.push({ type: scoreValue === 50 ? "crow" : "darkPhoenix", scoreValue, x: scoreValue === 50 ? W + 70 : W + 128, y: scoreValue === 50 ? 168 : 218, shotsLeft: 5, nextShot: frame + 70, fade: 0, done: false });
       effects.push({ kind: "bossIntro", x: W / 2, y: 154, start: frame, life: 170, text: `${bossName}来袭`, sub: "躲避声波，坚持5次" });
       playBossIntro(scoreValue === 100);
     }
@@ -942,9 +943,9 @@
 
     function useShield(rect) {
       shieldCharges = Math.max(0, shieldCharges - 1);
-      shieldGraceUntil = frame + 46;
-      velocity = Math.min(velocity, -4.8);
-      birdY = clamp(birdY - 18, 54, H - groundH - 70);
+      shieldGraceUntil = frame + 34;
+      velocity = Math.min(velocity, -2.8);
+      birdY = clamp(birdY - 7, 54, H - groundH - 70);
       effects.push({ kind: "shield", x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, start: frame, life: 44 });
       playFruit("shield");
     }
@@ -1264,27 +1265,29 @@
     }
 
     function drawNpcs() {
-      const gy = H - groundH, animals = [
-        ["rabbit",32,"啾!",.52,1.2],["cat",122,"冲呀",.62,1.18],["frog",214,"叮!",.48,1.16],["dog",302,"汪!",.58,1.2],
-        ["fox",392,"加油",.66,1.17],["panda",482,"棒!",.44,1.2],["turtle",566,"稳住",.36,1.14],["squirrel",642,"冲!",.5,1.18]
+      const gy = H - groundH, cheers = ["稳住!", "好样的", "冲呀!", "漂亮!", "别慌", "再来!", "节奏!", "起飞!", "看准!", "坚持!"], animals = [
+        ["rabbit",32,.52,1.16],["cat",110,.6,1.18],["pig",192,.44,1.16],["frog",272,.48,1.12],["dog",352,.58,1.18],
+        ["fox",434,.64,1.16],["panda",514,.44,1.17],["turtle",592,.36,1.12],["squirrel",666,.5,1.15]
       ];
       animals.forEach((a, i) => {
-        const x = (a[1] - (frame * a[3]) % 690 + 690) % 690 - 86, y = gy + 23 + Math.sin(frame / 22 + i) * 2, alpha = clamp(Math.min((x + 42) / 44, (W + 42 - x) / 44), 0, 1);
-        if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; animal(a[0], x, y, a[4]); if ((Math.floor(frame / 150) + i) % 4 === 0) bubble(x + 8, y - 42, a[2]); ctx.restore();
+        const x = (a[1] - (frame * a[2]) % 760 + 760) % 760 - 96, y = gy + 22, alpha = clamp(Math.min((x + 46) / 46, (W + 46 - x) / 46), 0, 1);
+        if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; animal(a[0], x, y + Math.sin(frame / 24 + i) * 1.1, a[3]); if ((Math.floor(frame / 145) + i) % 5 === 0) bubble(x - 6, y - 48, cheers[(i + Math.floor(frame / 145)) % cheers.length]); ctx.restore();
       });
     }
 
     function animal(kind, x, y, scale) {
       ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
-      if (kind === "rabbit") { ctx.fillStyle = "#f4f0e6"; ctx.fillRect(-8,-18,16,16); ctx.fillRect(-6,-30,5,14); ctx.fillRect(3,-30,5,14); ctx.fillStyle="#d9a1b4"; ctx.fillRect(-4,-27,2,9); ctx.fillRect(5,-27,2,9); }
-      else if (kind === "cat") { ctx.fillStyle="#f0b05a"; ctx.fillRect(-9,-18,18,17); ctx.fillRect(-7,-25,6,8); ctx.fillRect(2,-25,6,8); ctx.fillStyle="#6b3d22"; ctx.fillRect(8,-11,10,4); }
-      else if (kind === "frog") { ctx.fillStyle="#5fbf62"; ctx.fillRect(-10,-15,20,14); ctx.fillStyle="#daf7b8"; ctx.fillRect(-6,-20,5,5); ctx.fillRect(2,-20,5,5); }
-      else if (kind === "dog") { ctx.fillStyle="#c9864a"; ctx.fillRect(-11,-18,22,17); ctx.fillStyle="#7b5125"; ctx.fillRect(-13,-20,6,10); ctx.fillRect(7,-20,6,10); ctx.fillRect(9,-10,10,4); }
-      else if (kind === "fox") { ctx.fillStyle="#e66f2e"; ctx.fillRect(-10,-18,20,17); ctx.fillRect(-7,-25,6,8); ctx.fillRect(2,-25,6,8); ctx.fillStyle="#fff0b8"; ctx.fillRect(-4,-8,12,7); ctx.fillStyle="#e66f2e"; ctx.fillRect(10,-12,14,6); ctx.fillStyle="#fff0b8"; ctx.fillRect(20,-12,4,6); }
-      else if (kind === "panda") { ctx.fillStyle="#f4f0e6"; ctx.fillRect(-11,-19,22,18); ctx.fillStyle="#2d2a2a"; ctx.fillRect(-12,-23,7,7); ctx.fillRect(5,-23,7,7); ctx.fillRect(-7,-13,5,5); ctx.fillRect(3,-13,5,5); }
-      else if (kind === "squirrel") { ctx.fillStyle="#a86432"; ctx.fillRect(-9,-18,18,17); ctx.fillRect(8,-25,8,22); ctx.fillRect(14,-30,7,16); ctx.fillStyle="#e0a15b"; ctx.fillRect(-5,-9,10,8); ctx.fillStyle="#7b5125"; ctx.fillRect(-7,-24,5,7); ctx.fillRect(3,-24,5,7); }
-      else { ctx.fillStyle="#6aa86f"; ctx.fillRect(-12,-13,24,12); ctx.fillStyle="#9ed17f"; ctx.fillRect(-7,-19,13,8); ctx.fillStyle="#d4b15f"; ctx.fillRect(-3,-22,8,5); }
-      ctx.fillStyle="#1f1f2a"; ctx.fillRect(-4,-12,2,2); ctx.fillRect(4,-12,2,2); ctx.restore();
+      ctx.fillStyle = "rgba(43,23,18,.28)"; ctx.fillRect(-15, -2, 30, 5);
+      if (kind === "rabbit") { ctx.fillStyle = "#f4f0e6"; ctx.fillRect(-11,-24,22,20); ctx.fillRect(-9,-40,5,18); ctx.fillRect(2,-39,5,17); ctx.fillStyle="#d9a1b4"; ctx.fillRect(-7,-35,2,10); ctx.fillRect(4,-34,2,9); ctx.fillStyle="#f4f0e6"; ctx.fillRect(9,-16,9,8); }
+      else if (kind === "cat") { ctx.fillStyle="#f0b05a"; ctx.fillRect(-12,-24,24,20); ctx.fillRect(-10,-32,7,9); ctx.fillRect(3,-32,7,9); ctx.fillStyle="#fff0b8"; ctx.fillRect(-6,-13,13,8); ctx.fillStyle="#6b3d22"; ctx.fillRect(10,-14,13,4); ctx.fillRect(19,-18,4,8); }
+      else if (kind === "pig") { ctx.fillStyle="#f0a2b6"; ctx.fillRect(-13,-23,26,19); ctx.fillRect(-10,-30,7,8); ctx.fillRect(4,-30,7,8); ctx.fillStyle="#ffd1dc"; ctx.fillRect(-17,-16,13,8); ctx.fillStyle="#a85b6a"; ctx.fillRect(-13,-13,3,3); ctx.fillRect(-8,-13,3,3); ctx.fillStyle="#f0a2b6"; ctx.fillRect(10,-14,10,5); }
+      else if (kind === "frog") { ctx.fillStyle="#5fbf62"; ctx.fillRect(-13,-20,26,16); ctx.fillStyle="#daf7b8"; ctx.fillRect(-9,-27,6,7); ctx.fillRect(3,-27,6,7); ctx.fillRect(-7,-12,14,6); }
+      else if (kind === "dog") { ctx.fillStyle="#c9864a"; ctx.fillRect(-13,-23,26,19); ctx.fillStyle="#7b5125"; ctx.fillRect(-15,-26,7,12); ctx.fillRect(7,-26,7,12); ctx.fillRect(11,-14,12,4); ctx.fillStyle="#fff0b8"; ctx.fillRect(-5,-12,11,7); }
+      else if (kind === "fox") { ctx.fillStyle="#e66f2e"; ctx.fillRect(-12,-23,24,19); ctx.fillRect(-9,-32,7,10); ctx.fillRect(3,-32,7,10); ctx.fillStyle="#fff0b8"; ctx.fillRect(-6,-13,14,8); ctx.fillStyle="#e66f2e"; ctx.fillRect(10,-16,15,6); ctx.fillStyle="#fff0b8"; ctx.fillRect(21,-16,4,6); }
+      else if (kind === "panda") { ctx.fillStyle="#f4f0e6"; ctx.fillRect(-13,-24,26,20); ctx.fillStyle="#2d2a2a"; ctx.fillRect(-15,-29,8,8); ctx.fillRect(7,-29,8,8); ctx.fillRect(-8,-16,6,6); ctx.fillRect(3,-16,6,6); ctx.fillRect(10,-13,10,4); }
+      else if (kind === "squirrel") { ctx.fillStyle="#a86432"; ctx.fillRect(-12,-23,24,19); ctx.fillRect(9,-31,9,25); ctx.fillRect(15,-36,8,18); ctx.fillStyle="#e0a15b"; ctx.fillRect(-6,-13,12,8); ctx.fillStyle="#7b5125"; ctx.fillRect(-9,-31,6,8); ctx.fillRect(3,-31,6,8); }
+      else { ctx.fillStyle="#6aa86f"; ctx.fillRect(-12,-18,24,14); ctx.fillStyle="#9ed17f"; ctx.fillRect(-8,-25,16,9); }
+      ctx.fillStyle="#1f1f2a"; ctx.fillRect(-6,-17,3,3); ctx.fillRect(3,-17,3,3); ctx.fillStyle="#fff8d9"; ctx.fillRect(-3,-9,7,3); ctx.restore();
     }
 
     function bubble(x, y, text) {
@@ -1364,7 +1367,7 @@
     function playUnlock(){const ac=getAudioContext();if(!ac)return;tone(ac,659,0,.06,.045,"triangle");tone(ac,880,.055,.08,.05,"triangle");tone(ac,1175,.12,.1,.045,"sine");}
     function playAchievement(){const ac=getAudioContext();if(!ac)return;tone(ac,523,0,.08,.05,"triangle");tone(ac,784,.08,.09,.055,"triangle");tone(ac,1046,.17,.14,.05,"sine");}
     function playRecord(delay=0){const ac=getAudioContext();if(!ac)return;tone(ac,659,delay,.07,.05,"sine");tone(ac,988,delay+.07,.11,.06,"sine");}
-    function playNpcCheer(v){if(!audioContext)return;const p=[[740,920],[660,880],[820,1040],[590,760]][v%4];tone(audioContext,p[0],0,.045,.016,"triangle");tone(audioContext,p[1],.055,.05,.014,"triangle");}
+    function playNpcCheer(v){if(!audioContext||!soundEnabled)return;const p=[[740,920,"triangle"],[660,880,"sine"],[520,690,"square"],[820,1040,"triangle"],[590,760,"sine"],[700,540,"square"],[880,1108,"triangle"],[610,780,"sine"],[960,720,"triangle"]][v%9];tone(audioContext,p[0],0,.045,.012,p[2]);tone(audioContext,p[1],.055,.05,.011,p[2]);}
     function playFruit(type){const ac=getAudioContext();if(!ac)return;const base=type==="boost"?1046:type==="shield"?784:698;tone(ac,base,0,.055,.045,"triangle");tone(ac,base*1.25,.055,.08,.04,"sine");}
     function playBreak(){const ac=getAudioContext();if(!ac)return;tone(ac,220,0,.06,.035,"square");tone(ac,330,.045,.08,.03,"triangle");}
     function playBossWave(){const ac=getAudioContext();if(!ac)return;tone(ac,160,0,.12,.035,"sawtooth");tone(ac,110,.08,.16,.025,"sine");}
