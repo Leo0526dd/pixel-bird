@@ -19,12 +19,12 @@
     }
     .game { width: min(100%, 520px, calc((100vh - 118px) * .675)); display: grid; gap: 6px; position: relative; }
     .scorebar { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; }
-    .scorebar > div, .scorebar > button, .skin-group, .name-group, .audio-panel {
+    .scorebar > div, .scorebar > button, .menu-row button, .sound-chip {
       border: 3px solid #552b17; border-radius: 7px; background: #fff0b8;
       box-shadow: inset -3px -3px 0 rgba(117,70,28,.18), 0 3px 0 #7b5125;
     }
     .scorebar > div { min-height: 42px; display: grid; place-items: center; padding: 4px 8px; }
-    .scorebar span, .skin-group span, .name-group span, .audio-panel span { font-size: 12px; font-weight: 900; line-height: 1; }
+    .scorebar span, .sound-chip span { font-size: 12px; font-weight: 900; line-height: 1; }
     .scorebar strong { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: 20px; line-height: 1; }
     button { font: inherit; color: inherit; -webkit-appearance: none; appearance: none; touch-action: manipulation; }
     button:focus { outline: none; }
@@ -33,55 +33,32 @@
       min-height: 42px; cursor: pointer; padding: 0 12px; background: #f26f3b; color: #fff8d9;
       font-weight: 900; text-shadow: 0 2px 0 #7d351b;
     }
-    .skinbar { display: grid; grid-template-columns: 1.15fr .85fr; gap: 6px; }
-    .skin-group { min-height: 40px; display: grid; grid-template-columns: 32px 1fr; gap: 5px; align-items: center; padding: 4px; }
-    .skin-group > span { display: grid; place-items: center; min-height: 14px; }
-    .segmented { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 4px; }
-    .segmented button {
-      min-height: 28px; display: grid; place-items: center; padding: 0 3px; cursor: pointer;
-      border: 2px solid #7b5125; border-radius: 5px; background: #ffd96a; color: #5d2f18;
-      font-size: 10px; font-weight: 900; line-height: 1; white-space: nowrap;
-      box-shadow: inset -2px -2px 0 rgba(117,70,28,.16);
+    .menu-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; align-items: stretch; }
+    .menu-row button, .sound-chip {
+      min-height: 36px; display: grid; place-items: center; padding: 0 8px; cursor: pointer;
+      color: #5d2f18; font-size: 13px; font-weight: 900; line-height: 1;
     }
-    .segmented button.active { background: #2e7d36; color: #f7ffe8; }
-    .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; justify-items: center; align-items: center; }
-    .swatches button {
-      width: 24px; height: 24px; cursor: pointer; border: 2px solid #7b5125; border-radius: 50%;
-      box-shadow: inset -3px -3px 0 rgba(0,0,0,.18);
-    }
-    .swatches button.active {
-      box-shadow: inset -3px -3px 0 rgba(0,0,0,.18), inset 0 0 0 3px #fff0b8, 0 0 0 3px #f26f3b;
-    }
-    .swatches button.locked { filter: grayscale(.85) brightness(.78); position: relative; }
+    .menu-row button.active { background: #ffd96a; }
+    .sound-chip { grid-template-columns: auto auto; gap: 6px; cursor: default; }
+    .sound-chip input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2e7d36; }
     .canvas-button {
       width: 100%; aspect-ratio: 432 / 640; display: block; padding: 0; overflow: hidden; cursor: pointer;
       border: 5px solid #552b17; border-radius: 8px; background: #6ec6f1;
       box-shadow: 0 6px 0 #7b5125, 0 12px 20px rgba(60,35,16,.2); touch-action: none;
     }
     canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
-    .name-group {
-      min-height: 40px; display: grid; grid-template-columns: 42px 1fr; gap: 6px; align-items: center; padding: 4px;
-    }
-    .name-group input {
-      width: 100%; min-width: 0; height: 28px; border: 2px solid #7b5125; border-radius: 5px;
-      background: #fff8d9; color: #5d2f18; font: 900 13px "Microsoft YaHei", "PingFang SC", sans-serif;
-      text-align: center; outline: none;
-    }
-    .audio-panel {
-      min-height: 40px; display: grid; grid-template-columns: 42px 1fr; gap: 6px; align-items: center; padding: 4px;
-      font-size: 10px; font-weight: 900; line-height: 1; grid-column: 2;
-    }
     .hidden { display: none !important; }
-    .name-modal {
+    .name-modal, .modal-layer {
       position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 18px;
       background: rgba(34,23,18,.42);
     }
-    .name-card {
+    .name-card, .panel-card {
       width: min(92vw, 340px); display: grid; gap: 12px; padding: 18px;
       border: 4px solid #552b17; border-radius: 8px; background: #fff0b8;
       box-shadow: inset -4px -4px 0 rgba(117,70,28,.18), 0 8px 0 #7b5125;
       text-align: center;
     }
+    .panel-card { width: min(94vw, 460px); max-height: min(84vh, 620px); overflow: auto; text-align: left; }
     .name-card h1 { margin: 0; font-size: 22px; line-height: 1.15; color: #5d2f18; }
     .name-card input {
       height: 42px; border: 3px solid #7b5125; border-radius: 6px; background: #fff8d9; color: #5d2f18;
@@ -91,21 +68,35 @@
       height: 40px; border: 3px solid #552b17; border-radius: 6px; background: #2e7d36; color: #f7ffe8;
       font-weight: 900; box-shadow: 0 3px 0 #7b5125;
     }
-    .audio-panel label { display: flex; gap: 6px; align-items: center; justify-content: center; }
-    .audio-panel input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2e7d36; }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .panel-head h2 { margin: 0; font-size: 20px; color: #5d2f18; }
+    .panel-head button, .shop-item button {
+      border: 3px solid #552b17; border-radius: 6px; background: #f26f3b; color: #fff8d9;
+      font-weight: 900; box-shadow: 0 3px 0 #7b5125; min-height: 34px; padding: 0 10px;
+    }
+    .wallet { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 900; }
+    .shop-section { display: grid; gap: 7px; margin-top: 2px; }
+    .shop-section h3 { margin: 8px 0 0; font-size: 15px; color: #5d2f18; }
+    .shop-item, .achievement-item, .rank-item {
+      display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+      padding: 9px; border: 2px solid #7b5125; border-radius: 6px; background: #fff8d9;
+      box-shadow: inset -2px -2px 0 rgba(117,70,28,.12);
+    }
+    .shop-item strong, .achievement-item strong, .rank-item strong { display: block; font-size: 14px; color: #4b2817; }
+    .shop-item p, .achievement-item p, .rank-item p { margin: 3px 0 0; font-size: 11px; line-height: 1.35; color: #70411f; }
+    .shop-item .selected { background: #2e7d36; }
+    .achievement-item.locked { filter: grayscale(.45); opacity: .72; }
+    .rank-list { display: grid; gap: 7px; }
+    .rank-meta { font-size: 12px; line-height: 1.4; color: #70411f; }
     @media (max-width: 420px) {
       body { padding: 6px; }
-      .game { width: min(100%, calc((100vh - 96px) * .675)); gap: 5px; }
+      .game { width: min(100%, calc((100vh - 88px) * .675)); gap: 5px; }
       .scorebar { grid-template-columns: .8fr .8fr 1fr; }
       .scorebar > button { grid-column: auto; font-size: 13px; padding: 0 6px; }
       .scorebar > div { min-height: 38px; }
-      .skinbar { grid-template-columns: 1fr; }
-      .skin-group { min-height: 34px; grid-template-columns: 28px 1fr; }
-      .name-group, .audio-panel { min-height: 34px; grid-template-columns: 34px 1fr; }
-      .audio-panel { grid-column: auto; }
-      .skin-group > span { font-size: 10px; }
-      .segmented button { min-height: 24px; font-size: 10px; }
-      .swatches button { width: 22px; height: 22px; }
+      .menu-row { grid-template-columns: 1fr 1fr 1fr auto; gap: 5px; }
+      .menu-row button, .sound-chip { min-height: 32px; font-size: 12px; padding: 0 6px; }
+      .panel-card { padding: 14px; }
     }
   </style>
 </head>
@@ -116,19 +107,11 @@
       <div><span>最高</span><strong id="best">0</strong></div>
       <button id="startBtn" type="button">点击开始</button>
     </section>
-    <section class="skinbar">
-      <div class="skin-group">
-        <span>鸟</span>
-        <div class="segmented" id="kindButtons"></div>
-      </div>
-      <div class="skin-group">
-        <span>颜色</span>
-        <div class="swatches" id="colorButtons"></div>
-      </div>
-      <section class="audio-panel" id="audioPanel" aria-label="声音设置">
-        <span>音效</span>
-        <label><input id="soundToggle" type="checkbox" checked />开启</label>
-      </section>
+    <section class="menu-row" id="menuRow">
+      <button id="shopBtn" type="button">商店</button>
+      <button id="achievementBtn" type="button">成就</button>
+      <button id="rankBtn" type="button">排行</button>
+      <label class="sound-chip" id="soundChip"><span>音效</span><input id="soundToggle" type="checkbox" checked /></label>
     </section>
     <button class="canvas-button" id="canvasButton" type="button" aria-label="点击让小鸟飞起来">
       <canvas id="game" width="432" height="640"></canvas>
@@ -141,6 +124,26 @@
       <button id="confirmNameBtn" type="button">确定</button>
     </div>
   </section>
+  <section class="modal-layer hidden" id="shopModal" aria-label="商店">
+    <div class="panel-card">
+      <div class="panel-head"><h2>商店</h2><button id="closeShopBtn" type="button">关闭</button></div>
+      <div class="wallet"><span id="walletText">金币 0</span><span>只改变外观，不影响数值</span></div>
+      <div id="shopItems"></div>
+    </div>
+  </section>
+  <section class="modal-layer hidden" id="achievementModal" aria-label="成就">
+    <div class="panel-card">
+      <div class="panel-head"><h2>成就</h2><button id="closeAchievementBtn" type="button">关闭</button></div>
+      <div id="achievementItems"></div>
+    </div>
+  </section>
+  <section class="modal-layer hidden" id="rankModal" aria-label="排行榜">
+    <div class="panel-card">
+      <div class="panel-head"><h2>排行榜</h2><button id="closeRankBtn" type="button">关闭</button></div>
+      <p class="rank-meta" id="rankMeta">正在读取前十名...</p>
+      <div class="rank-list" id="rankItems"></div>
+    </div>
+  </section>
   <script>
     const W = 432, H = 640, birdX = 112, birdSize = 34, pipeW = 66, pipeGap = 174, groundH = 86;
     const gravity = 0.36, flapPower = -7.15, pipeSpeed = 2.18, pipeSpacing = 246, readyFrames = 84;
@@ -148,12 +151,22 @@
     const startBufferFrames = isWechat ? 112 : readyFrames;
     const weatherCycle = ["clear", "cloudy", "rainy", "windy", "snowy"];
     const weatherDurationFrames = 1800, weatherBlendFrames = 520;
-    const kinds = [{ id: "chick", name: "小鸡" }, { id: "owl", name: "夜枭" }, { id: "parrot", name: "鹦鹉" }];
+    const kinds = [
+      { id: "chick", name: "小鸡", cost: 0, desc: "轻快的新手伙伴，适合稳定练习。" },
+      { id: "owl", name: "夜枭", cost: 24, desc: "夜航风格，眼神更专注，适合挑战高分。" },
+      { id: "parrot", name: "鹦鹉", cost: 36, desc: "鲜艳冒险家，飞过暴风雨也很醒目。" }
+    ];
     const palettes = [
-      { id: "sunny", name: "阳光", body: "#f6c65b", belly: "#ffe68c", wing: "#dd7b2f", beak: "#f07f2f", shadow: "#9a4b1d" },
-      { id: "berry", name: "莓果", body: "#e85b7d", belly: "#ffd1dc", wing: "#9e3b7a", beak: "#ff9a35", shadow: "#6a2146" },
-      { id: "mint", name: "薄荷", body: "#58cfa6", belly: "#d6fff2", wing: "#2d917c", beak: "#ffc34d", shadow: "#226558" },
-      { id: "sky", name: "蓝天", body: "#54a7f7", belly: "#d8f1ff", wing: "#2e68c9", beak: "#ffb24a", shadow: "#224386" }
+      { id: "sunny", name: "阳光", cost: 0, desc: "经典暖色，清晰耐看。", body: "#f6c65b", belly: "#ffe68c", wing: "#dd7b2f", beak: "#f07f2f", shadow: "#9a4b1d" },
+      { id: "berry", name: "莓果", cost: 8, desc: "甜莓色外观，适合活泼路线。", body: "#e85b7d", belly: "#ffd1dc", wing: "#9e3b7a", beak: "#ff9a35", shadow: "#6a2146" },
+      { id: "mint", name: "薄荷", cost: 16, desc: "清爽薄荷配色，雨天也容易看清。", body: "#58cfa6", belly: "#d6fff2", wing: "#2d917c", beak: "#ffc34d", shadow: "#226558" },
+      { id: "sky", name: "蓝天", cost: 28, desc: "蓝天主题，视觉更明亮。", body: "#54a7f7", belly: "#d8f1ff", wing: "#2e68c9", beak: "#ffb24a", shadow: "#224386" }
+    ];
+    const pipeThemes = [
+      { id: "green", name: "经典绿管", cost: 0, desc: "像素冒险的经典管道。", colors: { dark:"#146b37", body:"#2fb85f", shine:"#92f27c", edge:"#0b4f2d", capDark:"#0f5d33", cap:"#39c96e" } },
+      { id: "violet", name: "夜幕紫管", cost: 18, desc: "夜晚区域风格，沉稳但不压画面。", colors: { dark:"#3b2f68", body:"#6b5ac8", shine:"#b8a8ff", edge:"#282052", capDark:"#33275f", cap:"#7e6de0" } },
+      { id: "steel", name: "风暴钢管", cost: 32, desc: "暴风雨主题，更像后期挑战区。", colors: { dark:"#334852", body:"#5f7d87", shine:"#b8d2d8", edge:"#22343c", capDark:"#2a414b", cap:"#71929d" } },
+      { id: "gold", name: "纪念金管", cost: 48, desc: "把普通柱子换成纪念金色，十连里程碑仍会更亮。", colors: { dark:"#8b5a05", body:"#d99812", shine:"#fff18a", edge:"#5e3900", capDark:"#7a4700", cap:"#f2b622" } }
     ];
     const stageList = [
       { id: 1, min: 0, name: "Stage 1 白天", sky: "clear", pipeTint: "green" },
@@ -162,28 +175,31 @@
       { id: 4, min: 100, name: "Stage 4 暴风雨", sky: "storm", pipeTint: "steel" }
     ];
     const achievementList = [
-      { id: "score20", score: 20, text: "稳定起飞" },
-      { id: "score50", score: 50, text: "穿越黄昏" },
-      { id: "score100", score: 100, text: "夜航高手" },
-      { id: "score150", score: 150, text: "风暴挑战者" }
+      { id: "score20", score: 20, text: "稳定起飞", desc: "单局达到20分。" },
+      { id: "score50", score: 50, text: "穿越黄昏", desc: "单局达到50分。" },
+      { id: "score100", score: 100, text: "夜航高手", desc: "单局达到100分。" },
+      { id: "score150", score: 150, text: "风暴挑战者", desc: "单局达到150分。" }
     ];
     const unlockList = [
-      { id: "berry", cost: 8, text: "莓果颜色" },
-      { id: "mint", cost: 16, text: "薄荷颜色" },
-      { id: "sky", cost: 28, text: "蓝天颜色" },
-      { id: "storm-theme", cost: 40, text: "风暴背景主题" }
+      ...kinds.map((item) => ({ id: `bird-${item.id}`, cost: item.cost, text: item.name })),
+      ...palettes.map((item) => ({ id: `color-${item.id}`, cost: item.cost, text: item.name })),
+      ...pipeThemes.map((item) => ({ id: `pipe-${item.id}`, cost: item.cost, text: item.name }))
     ];
+    const leaderboardConfig = { env: "pixelbird-d3gvwykqx50c17cbf", collection: "pixelbird_scores", enabled: true };
     let status = "ready", score = 0, best = Number(localStorage.getItem("pixel-bird-offline-best") || 0);
     let birdY = 220, velocity = 0, pipes = [], fruits = [], arrows = [], effects = [], frame = 0, runFrame = 0, birdKind = "chick", palette = palettes[0];
     let shieldCharges = 0, shieldGraceUntil = 0, boostUntil = 0, boostPipesLeft = 0, destroyCharges = 0, audioContext = null, ambient = null, npcCheerFrame = -999, lastTouchAt = 0;
-    let rewardState = loadRewards(), runReward = null, lastStageId = 1;
+    let rewardState = loadRewards(), runReward = null, lastStageId = 1, sessionAchievements = [];
     let soundEnabled = localStorage.getItem("pixel-bird-sound") !== "off", masterVolume = .78;
     let playerName = localStorage.getItem("pixel-bird-player-name") || "小飞鸟";
+    let playerId = getPlayerId(), pipeThemeId = localStorage.getItem("pixel-bird-pipe-theme") || "green", leaderboardClient = null;
     let hasNamed = false;
     const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
     const scoreEl = document.getElementById("score"), bestEl = document.getElementById("best"), startBtn = document.getElementById("startBtn");
-    const audioPanel = document.getElementById("audioPanel"), soundToggle = document.getElementById("soundToggle"), playerNameInput = document.getElementById("playerNameInput");
+    const menuRow = document.getElementById("menuRow"), soundChip = document.getElementById("soundChip"), soundToggle = document.getElementById("soundToggle"), playerNameInput = document.getElementById("playerNameInput");
     const nameModal = document.getElementById("nameModal"), confirmNameBtn = document.getElementById("confirmNameBtn");
+    const shopModal = document.getElementById("shopModal"), achievementModal = document.getElementById("achievementModal"), rankModal = document.getElementById("rankModal");
+    const shopItems = document.getElementById("shopItems"), achievementItems = document.getElementById("achievementItems"), rankItems = document.getElementById("rankItems"), walletText = document.getElementById("walletText"), rankMeta = document.getElementById("rankMeta");
 
     function syncUi() {
       scoreEl.textContent = score;
@@ -193,70 +209,55 @@
       soundToggle.checked = soundEnabled;
       playerNameInput.value = playerName;
       nameModal.classList.toggle("hidden", hasNamed);
-      [...document.querySelectorAll("[data-kind]")].forEach((b) => b.classList.toggle("active", b.dataset.kind === birdKind));
-      [...document.querySelectorAll("[data-color]")].forEach((b) => {
-        const locked = !isUnlocked(b.dataset.color);
-        b.classList.toggle("active", b.dataset.color === palette.id);
-        b.classList.toggle("locked", locked);
-        b.title = locked ? `${getUnlockCost(b.dataset.color)}金币解锁` : b.getAttribute("aria-label");
-      });
+      renderShop();
+      renderAchievements();
     }
 
     function initControls() {
-      const kindBox = document.getElementById("kindButtons");
-      kinds.forEach((k) => {
-        const btn = document.createElement("button");
-        btn.textContent = k.name; btn.dataset.kind = k.id;
-        btn.onclick = (event) => { event.stopPropagation(); birdKind = k.id; syncUi(); };
-        kindBox.appendChild(btn);
-      });
-      const colorBox = document.getElementById("colorButtons");
-      palettes.forEach((p) => {
-        const btn = document.createElement("button");
-        btn.title = p.name; btn.dataset.color = p.id; btn.style.background = p.body;
-        btn.onclick = (event) => {
-          event.stopPropagation();
-          if (!isUnlocked(p.id)) {
-            const cost = getUnlockCost(p.id);
-            if (rewardState.coins >= cost) {
-              rewardState.coins -= cost;
-              rewardState.unlocks.push(p.id);
-              saveRewards();
-              playMilestone();
-            } else {
-              playCrash();
-              return;
-            }
-          }
-          palette = p; syncUi();
-        };
-        colorBox.appendChild(btn);
-      });
+      birdKind = localStorage.getItem("pixel-bird-kind") || birdKind;
+      const savedPalette = palettes.find((p) => p.id === localStorage.getItem("pixel-bird-palette"));
+      if (savedPalette) palette = savedPalette;
+      if (!isUnlocked("bird", birdKind)) birdKind = "chick";
+      if (!isUnlocked("color", palette.id)) palette = palettes[0];
+      if (!isUnlocked("pipe", pipeThemeId)) pipeThemeId = "green";
       syncUi();
     }
 
     function updateAudioPanel() {
-      audioPanel.classList.toggle("hidden", status === "playing" && runFrame >= startBufferFrames);
+      menuRow.classList.toggle("hidden", status === "playing" && runFrame >= startBufferFrames);
     }
 
     function loadRewards() {
+      const defaults = ["bird-chick", "color-sunny", "pipe-green", "sunny"];
+      let state;
       try {
-        return JSON.parse(localStorage.getItem("pixel-bird-rewards") || "") || { coins: 0, xp: 0, achievements: [], unlocks: ["sunny"] };
+        state = JSON.parse(localStorage.getItem("pixel-bird-rewards") || "") || {};
       } catch {
-        return { coins: 0, xp: 0, achievements: [], unlocks: ["sunny"] };
+        state = {};
       }
+      state.coins = Number(state.coins || 0);
+      state.xp = Number(state.xp || 0);
+      state.achievements = Array.isArray(state.achievements) ? state.achievements : [];
+      state.unlocks = Array.isArray(state.unlocks) ? state.unlocks : [];
+      defaults.forEach((id) => { if (!state.unlocks.includes(id)) state.unlocks.push(id); });
+      return state;
     }
 
     function saveRewards() {
       localStorage.setItem("pixel-bird-rewards", JSON.stringify(rewardState));
     }
 
-    function isUnlocked(id) {
-      return id === "sunny" || rewardState.unlocks.includes(id);
+    function getUnlockId(type, id) {
+      return id.includes("-") ? id : `${type}-${id}`;
+    }
+
+    function isUnlocked(type, id) {
+      const key = id ? getUnlockId(type, id) : type;
+      return rewardState.unlocks.includes(key) || key === "sunny";
     }
 
     function getUnlockCost(id) {
-      return unlockList.find((item) => item.id === id)?.cost || 0;
+      return unlockList.find((item) => item.id === id || item.id.endsWith(`-${id}`))?.cost || 0;
     }
 
     function getDifficulty(scoreValue) {
@@ -297,17 +298,172 @@
       return scoreValue >= 150 && scoreValue % 60 >= 0 && scoreValue % 60 < 12;
     }
 
+    function renderShop() {
+      if (!shopItems) return;
+      walletText.textContent = `金币 ${rewardState.coins}`;
+      shopItems.innerHTML = "";
+      addShopSection("小鸟皮肤", kinds.map((item) => ({
+        type: "bird", id: item.id, name: item.name, desc: item.desc, cost: item.cost, selected: birdKind === item.id,
+        choose: () => { birdKind = item.id; localStorage.setItem("pixel-bird-kind", birdKind); }
+      })));
+      addShopSection("颜色", palettes.map((item) => ({
+        type: "color", id: item.id, name: item.name, desc: item.desc, cost: item.cost, selected: palette.id === item.id,
+        choose: () => { palette = item; localStorage.setItem("pixel-bird-palette", palette.id); }
+      })));
+      addShopSection("柱子主题", pipeThemes.map((item) => ({
+        type: "pipe", id: item.id, name: item.name, desc: item.desc, cost: item.cost, selected: pipeThemeId === item.id,
+        choose: () => { pipeThemeId = item.id; localStorage.setItem("pixel-bird-pipe-theme", pipeThemeId); }
+      })));
+    }
+
+    function addShopSection(title, items) {
+      const section = document.createElement("section");
+      section.className = "shop-section";
+      const h = document.createElement("h3");
+      h.textContent = title;
+      section.appendChild(h);
+      items.forEach((item) => section.appendChild(createShopItem(item)));
+      shopItems.appendChild(section);
+    }
+
+    function createShopItem(item) {
+      const row = document.createElement("div");
+      row.className = "shop-item";
+      const info = document.createElement("div");
+      info.innerHTML = `<strong>${item.name}</strong><p>${item.desc}</p>`;
+      const btn = document.createElement("button");
+      const unlocked = isUnlocked(item.type, item.id);
+      btn.textContent = item.selected ? "使用中" : unlocked ? "使用" : `${item.cost}金币`;
+      btn.className = item.selected ? "selected" : "";
+      btn.onclick = (event) => {
+        event.stopPropagation();
+        if (!unlocked) {
+          if (rewardState.coins < item.cost) { playCrash(); return; }
+          rewardState.coins -= item.cost;
+          rewardState.unlocks.push(getUnlockId(item.type, item.id));
+          saveRewards();
+          playUnlock();
+        }
+        item.choose();
+        syncUi();
+      };
+      row.appendChild(info);
+      row.appendChild(btn);
+      return row;
+    }
+
+    function renderAchievements() {
+      if (!achievementItems) return;
+      achievementItems.innerHTML = "";
+      achievementList.forEach((item) => {
+        const done = rewardState.achievements.includes(item.id);
+        const row = document.createElement("div");
+        row.className = `achievement-item${done ? "" : " locked"}`;
+        row.innerHTML = `<div><strong>${done ? "已达成" : "未达成"} · ${item.text}</strong><p>${item.desc}</p></div><strong>${item.score}</strong>`;
+        achievementItems.appendChild(row);
+      });
+    }
+
+    function checkAchievementPopups(scoreValue) {
+      const fresh = achievementList.filter((a) => scoreValue >= a.score && !rewardState.achievements.includes(a.id));
+      if (!fresh.length) return;
+      fresh.forEach((item, index) => {
+        rewardState.achievements.push(item.id);
+        sessionAchievements.push(item);
+        effects.push({ kind: "achievement", x: W / 2, y: 46 + index * 34, start: frame + index * 10, life: 142, text: item.text });
+      });
+      saveRewards();
+      playAchievement();
+    }
+
     function finalizeRewards(finalScore) {
       const coins = Math.max(1, Math.floor(finalScore / 5) + (finalScore >= 50 ? 3 : 0));
       const xp = finalScore * 2 + coins;
-      const newAchievements = achievementList.filter((a) => finalScore >= a.score && !rewardState.achievements.includes(a.id));
+      checkAchievementPopups(finalScore);
+      const newAchievements = [...sessionAchievements];
       const newUnlocks = [];
       rewardState.coins += coins;
       rewardState.xp += xp;
-      rewardState.achievements.push(...newAchievements.map((a) => a.id));
-      rewardState.unlocks.push(...newUnlocks.map((u) => u.id));
       saveRewards();
       return { coins, xp, newAchievements, newUnlocks };
+    }
+
+    function getPlayerId() {
+      let id = localStorage.getItem("pixel-bird-player-id");
+      if (!id) {
+        id = Math.random().toString(36).slice(2, 8).toUpperCase();
+        localStorage.setItem("pixel-bird-player-id", id);
+      }
+      return id;
+    }
+
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing) { existing.addEventListener("load", resolve, { once: true }); resolve(); return; }
+        const script = document.createElement("script");
+        script.src = src; script.async = true; script.onload = resolve; script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    async function getLeaderboardClient() {
+      if (leaderboardClient) return leaderboardClient;
+      if (!leaderboardConfig.enabled || !navigator.onLine) throw new Error("offline");
+      await loadScript("https://static.cloudbase.net/cloudbase-js-sdk/2.10.1/cloudbase.full.js");
+      const cloudbaseApi = window.cloudbase || window.tcb;
+      if (!cloudbaseApi) throw new Error("sdk");
+      const app = cloudbaseApi.init({ env: leaderboardConfig.env });
+      const auth = app.auth({ persistence: "local" });
+      try { await auth.signInAnonymously(); } catch (error) {}
+      leaderboardClient = app.database();
+      return leaderboardClient;
+    }
+
+    function saveLocalRank(finalScore) {
+      const rows = JSON.parse(localStorage.getItem("pixel-bird-local-ranks") || "[]");
+      rows.push({ playerId, name: playerName, score: finalScore, createdAt: Date.now() });
+      rows.sort((a, b) => b.score - a.score || b.createdAt - a.createdAt);
+      localStorage.setItem("pixel-bird-local-ranks", JSON.stringify(rows.slice(0, 10)));
+    }
+
+    async function submitLeaderboard(finalScore) {
+      saveLocalRank(finalScore);
+      try {
+        const db = await getLeaderboardClient();
+        await db.collection(leaderboardConfig.collection).add({
+          playerId, name: playerName, score: finalScore, createdAt: Date.now()
+        });
+      } catch (error) {}
+    }
+
+    async function openLeaderboard() {
+      rankModal.classList.remove("hidden");
+      rankItems.innerHTML = "";
+      rankMeta.textContent = `玩家 ${playerName} · 正在读取云端前十名`;
+      try {
+        const db = await getLeaderboardClient();
+        const result = await db.collection(leaderboardConfig.collection).orderBy("score", "desc").limit(10).get();
+        renderRanks(result.data || [], "云端前十名");
+      } catch (error) {
+        const rows = JSON.parse(localStorage.getItem("pixel-bird-local-ranks") || "[]");
+        renderRanks(rows, "云端暂未连接，先显示本机记录");
+      }
+    }
+
+    function renderRanks(rows, title) {
+      rankMeta.textContent = `${title} · 玩家 ${playerName}`;
+      rankItems.innerHTML = "";
+      if (!rows.length) {
+        rankItems.innerHTML = `<div class="rank-item"><div><strong>暂无记录</strong><p>完成一局后会自动记录分数。</p></div></div>`;
+        return;
+      }
+      rows.slice(0, 10).forEach((row, index) => {
+        const item = document.createElement("div");
+        item.className = "rank-item";
+        item.innerHTML = `<div><strong>#${index + 1} ${row.name || "小飞鸟"}</strong><p>玩家昵称</p></div><strong>${Number(row.score || 0)}</strong>`;
+        rankItems.appendChild(item);
+      });
     }
 
     function normalizeName() {
@@ -334,7 +490,7 @@
 
     function resetGame() {
       score = 0; birdY = 220; velocity = 0; frame = 0; runFrame = 0; shieldCharges = 0; shieldGraceUntil = 0; boostUntil = 0; boostPipesLeft = 0; destroyCharges = 0;
-      effects = []; arrows = []; runReward = null; lastStageId = getStage(0).id;
+      effects = []; arrows = []; runReward = null; sessionAchievements = []; lastStageId = getStage(0).id;
       const firstPipeX = isWechat ? W + 300 : W + 240;
       pipes = [createPipe(firstPipeX, 0, 1)];
       pipes.push(createPipe(pipes[0].x + getPipeSpacing(2), 1, 2));
@@ -434,6 +590,7 @@
           if (boosting) boostPipesLeft--;
           milestone ? playMilestone() : playScore();
           if (record) { best = nextScore; localStorage.setItem("pixel-bird-offline-best", String(best)); playRecord(milestone ? .16 : 0); }
+          checkAchievementPopups(score);
           syncUi();
         }
       }
@@ -512,6 +669,7 @@
       playCrash();
       best = Math.max(best, score); localStorage.setItem("pixel-bird-offline-best", String(best));
       runReward = finalizeRewards(score);
+      submitLeaderboard(score);
       status = "ended"; syncUi();
     }
 
@@ -691,6 +849,16 @@
         if (e.kind === "stage") {
           ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "700 20px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
           ctx.lineWidth = 5; ctx.strokeStyle = "#552b17"; ctx.strokeText(e.text, 0, 0); ctx.fillStyle = "#fff3aa"; ctx.fillText(e.text, 0, 0);
+        } else if (e.kind === "achievement") {
+          const slide = Math.min(1, Math.max(0, t * 5));
+          ctx.globalAlpha = Math.min(1, alpha * 1.8);
+          ctx.translate(0, -42 + slide * 42);
+          ctx.fillStyle = "#552b17"; ctx.fillRect(-150, -21, 300, 42);
+          ctx.fillStyle = "#f2b622"; ctx.fillRect(-144, -16, 288, 32);
+          ctx.fillStyle = "#fff8d9"; ctx.fillRect(-136, -10, 28, 20);
+          ctx.fillStyle = "#8b5a05"; ctx.fillRect(-129, -4, 14, 8);
+          ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "700 15px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+          ctx.fillStyle = "#552b17"; ctx.fillText(`成就达成：${e.text}`, -98, 0);
         } else if (e.kind === "break") {
           ctx.fillStyle = "#fff18a";
           for (let i = 0; i < 9; i++) { const a = i * .7, d = t * 42; ctx.fillRect(Math.cos(a) * d, Math.sin(a) * d, 7, 7); }
@@ -716,7 +884,9 @@
     function pipePart(x, y, w, h, flip, gold, rhythm) {
       const capH = 28, capY = flip ? y + h - capH : y, bodyY = flip ? y : y + capH, bodyH = Math.max(h - capH, 0);
       const stage = getStage(score);
+      const selectedPipe = pipeThemes.find((item) => item.id === pipeThemeId)?.colors;
       const c = gold ? { dark:"#8b5a05", body:"#d99812", shine:"#fff18a", edge:"#5e3900", capDark:"#7a4700", cap:"#f2b622" } :
+        selectedPipe && pipeThemeId !== "green" ? selectedPipe :
         stage.pipeTint === "violet" ? { dark:"#3b2f68", body:"#6b5ac8", shine:"#b8a8ff", edge:"#282052", capDark:"#33275f", cap:"#7e6de0" } :
         stage.pipeTint === "steel" ? { dark:"#334852", body:"#5f7d87", shine:"#b8d2d8", edge:"#22343c", capDark:"#2a414b", cap:"#71929d" } :
         { dark:"#146b37", body:"#2fb85f", shine:"#92f27c", edge:"#0b4f2d", capDark:"#0f5d33", cap:"#39c96e" };
@@ -847,6 +1017,8 @@
     function playFlap(){const ac=getAudioContext(); if(!ac||!soundEnabled)return; const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="square";o.frequency.setValueAtTime(520,now);o.frequency.exponentialRampToValueAtTime(880,now+.055);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(outputVolume(.09),now+.008);g.gain.exponentialRampToValueAtTime(.001,now+.09);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.1);}
     function playScore(){const ac=getAudioContext();if(!ac)return;tone(ac,880,0,.09,.07,"sine");}
     function playMilestone(){const ac=getAudioContext();if(!ac)return;tone(ac,784,0,.08,.07,"triangle");tone(ac,1046,.075,.1,.08,"triangle");tone(ac,1568,.16,.16,.06,"sine");}
+    function playUnlock(){const ac=getAudioContext();if(!ac)return;tone(ac,659,0,.06,.045,"triangle");tone(ac,880,.055,.08,.05,"triangle");tone(ac,1175,.12,.1,.045,"sine");}
+    function playAchievement(){const ac=getAudioContext();if(!ac)return;tone(ac,523,0,.08,.05,"triangle");tone(ac,784,.08,.09,.055,"triangle");tone(ac,1046,.17,.14,.05,"sine");}
     function playRecord(delay=0){const ac=getAudioContext();if(!ac)return;tone(ac,659,delay,.07,.05,"sine");tone(ac,988,delay+.07,.11,.06,"sine");}
     function playNpcCheer(v){if(!audioContext)return;const p=[[740,920],[660,880],[820,1040],[590,760]][v%4];tone(audioContext,p[0],0,.045,.016,"triangle");tone(audioContext,p[1],.055,.05,.014,"triangle");}
     function playFruit(type){const ac=getAudioContext();if(!ac)return;const base=type==="boost"?1046:type==="shield"?784:698;tone(ac,base,0,.055,.045,"triangle");tone(ac,base*1.25,.055,.08,.04,"sine");}
@@ -867,6 +1039,16 @@
       flap();
     }
     const canvasButton = document.getElementById("canvasButton");
+    document.getElementById("shopBtn").addEventListener("click", (event) => { event.stopPropagation(); renderShop(); shopModal.classList.remove("hidden"); });
+    document.getElementById("achievementBtn").addEventListener("click", (event) => { event.stopPropagation(); renderAchievements(); achievementModal.classList.remove("hidden"); });
+    document.getElementById("rankBtn").addEventListener("click", (event) => { event.stopPropagation(); openLeaderboard(); });
+    document.getElementById("closeShopBtn").addEventListener("click", () => shopModal.classList.add("hidden"));
+    document.getElementById("closeAchievementBtn").addEventListener("click", () => achievementModal.classList.add("hidden"));
+    document.getElementById("closeRankBtn").addEventListener("click", () => rankModal.classList.add("hidden"));
+    [shopModal, achievementModal, rankModal].forEach((modal) => {
+      modal.addEventListener("pointerdown", (event) => { if (event.target === modal) modal.classList.add("hidden"); });
+      modal.addEventListener("click", (event) => event.stopPropagation());
+    });
     soundToggle.addEventListener("change", (event) => {
       soundEnabled = event.target.checked;
       localStorage.setItem("pixel-bird-sound", soundEnabled ? "on" : "off");
@@ -910,7 +1092,17 @@
     document.addEventListener("touchmove", (event) => event.preventDefault(), { passive: false });
     document.addEventListener("gesturestart", (event) => event.preventDefault());
     document.addEventListener("contextmenu", (event) => event.preventDefault());
-    window.addEventListener("keydown", (e) => { if (e.code === "Escape") { e.preventDefault(); togglePause(); } if (["Space","ArrowUp","Enter"].includes(e.code)) { e.preventDefault(); flap(); } });
+    window.addEventListener("keydown", (e) => {
+      const modalOpen = !shopModal.classList.contains("hidden") || !achievementModal.classList.contains("hidden") || !rankModal.classList.contains("hidden") || !nameModal.classList.contains("hidden");
+      if (e.code === "Escape") {
+        e.preventDefault();
+        if (!shopModal.classList.contains("hidden")) shopModal.classList.add("hidden");
+        else if (!achievementModal.classList.contains("hidden")) achievementModal.classList.add("hidden");
+        else if (!rankModal.classList.contains("hidden")) rankModal.classList.add("hidden");
+        else togglePause();
+      }
+      if (!modalOpen && ["Space","ArrowUp","Enter"].includes(e.code)) { e.preventDefault(); flap(); }
+    });
     initControls(); resetGame(); loop();
   </script>
 </body>
