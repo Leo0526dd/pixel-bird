@@ -1,0 +1,1540 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=overlays-content" />
+  <title>像素飞鸟 100分私人版</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; min-height: 100%; background: #4aa3d8; color: #2a1a12;
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, sans-serif; overflow: hidden;
+      overscroll-behavior: none; touch-action: none; -webkit-user-select: none; user-select: none;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: geometricPrecision;
+    }
+    body {
+      display: grid; place-items: center; padding: 8px;
+      background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,246,166,.18)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 1px, transparent 1px 24px), #4aa3d8;
+    }
+    .game { width: min(100%, 520px, calc((100vh - 118px) * .675)); display: grid; gap: 6px; position: relative; }
+    .scorebar { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; }
+    .scorebar > div, .scorebar > button, .menu-row button, .sound-chip {
+      border: 3px solid #552b17; border-radius: 7px; background: #fff0b8;
+      box-shadow: inset -3px -3px 0 rgba(117,70,28,.18), 0 3px 0 #7b5125;
+    }
+    .scorebar > div { min-height: 42px; display: grid; place-items: center; padding: 4px 8px; }
+    .scorebar span, .sound-chip span { font-size: 12px; font-weight: 900; line-height: 1; }
+    .scorebar strong { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: 20px; line-height: 1; }
+    button { font: inherit; color: inherit; -webkit-appearance: none; appearance: none; touch-action: manipulation; }
+    button:focus { outline: none; }
+    button:active { filter: none; background-blend-mode: normal; }
+    .scorebar > button {
+      min-height: 42px; cursor: pointer; padding: 0 12px; background: #f26f3b; color: #fff8d9;
+      font-weight: 900; text-shadow: 0 2px 0 #7d351b;
+    }
+    .menu-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; align-items: stretch; }
+    .menu-row button, .sound-chip {
+      min-height: 36px; display: grid; place-items: center; padding: 0 8px; cursor: pointer;
+      color: #5d2f18; font-size: 13px; font-weight: 900; line-height: 1;
+    }
+    .menu-row button.active { background: #ffd96a; }
+    .sound-chip { grid-template-columns: auto auto; gap: 6px; cursor: default; }
+    .sound-chip input[type="checkbox"] { width: 18px; height: 18px; accent-color: #2e7d36; }
+    .canvas-button {
+      width: 100%; aspect-ratio: 432 / 640; display: block; padding: 0; overflow: hidden; cursor: pointer;
+      border: 5px solid #552b17; border-radius: 8px; background: #6ec6f1;
+      box-shadow: 0 6px 0 #7b5125, 0 12px 20px rgba(60,35,16,.2); touch-action: none;
+    }
+    .side-pause {
+      position: absolute; right: -58px; top: 52%; transform: translateY(-50%);
+      width: 52px; min-height: 74px; border: 4px solid #552b17; border-radius: 9px;
+      background: #fff0b8; color: #5d2f18; font-weight: 900; font-size: 14px; line-height: 1.1;
+      box-shadow: inset -3px -3px 0 rgba(117,70,28,.18), 0 5px 0 #7b5125;
+      cursor: pointer; z-index: 8; touch-action: manipulation;
+    }
+    .side-pause.active { background: #2e7d36; color: #f7ffe8; }
+    canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
+    .hidden { display: none !important; }
+    .name-modal, .modal-layer {
+      position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 18px;
+      background: rgba(34,23,18,.42);
+    }
+    .name-card, .panel-card {
+      width: min(92vw, 340px); display: grid; gap: 12px; padding: 18px;
+      border: 4px solid #552b17; border-radius: 8px; background: #fff0b8;
+      box-shadow: inset -4px -4px 0 rgba(117,70,28,.18), 0 8px 0 #7b5125;
+      text-align: center;
+    }
+    .panel-card { width: min(94vw, 460px); max-height: min(84vh, 620px); overflow: hidden; text-align: left; }
+    .name-card h1 { margin: 0; font-size: 22px; line-height: 1.15; color: #5d2f18; }
+    .name-card input {
+      height: 42px; border: 3px solid #7b5125; border-radius: 6px; background: #fff8d9; color: #5d2f18;
+      font: 900 18px "Microsoft YaHei", "PingFang SC", sans-serif; text-align: center; outline: none;
+    }
+    .name-card button {
+      height: 40px; border: 3px solid #552b17; border-radius: 6px; background: #2e7d36; color: #f7ffe8;
+      font-weight: 900; box-shadow: 0 3px 0 #7b5125;
+    }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .panel-head h2 { margin: 0; font-size: 20px; color: #5d2f18; }
+    .panel-head button, .shop-item button {
+      border: 3px solid #552b17; border-radius: 6px; background: #f26f3b; color: #fff8d9;
+      font-weight: 900; box-shadow: 0 3px 0 #7b5125; min-height: 34px; padding: 0 10px;
+    }
+    .wallet { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 900; }
+    #shopItems, #achievementItems {
+      display: grid; gap: 8px; max-height: min(66vh, 470px); overflow-y: auto; padding-right: 3px;
+    }
+    .shop-section { display: grid; gap: 7px; margin-top: 2px; }
+    .shop-section h3 { margin: 8px 0 0; font-size: 15px; color: #5d2f18; }
+    .shop-item {
+      display: grid; grid-template-columns: 1fr 58px auto; gap: 8px; align-items: center;
+      padding: 9px; border: 2px solid #7b5125; border-radius: 6px; background: #fff8d9;
+      box-shadow: inset -2px -2px 0 rgba(117,70,28,.12);
+    }
+    .achievement-item, .rank-item {
+      display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+      padding: 9px; border: 2px solid #7b5125; border-radius: 6px; background: #fff8d9;
+      box-shadow: inset -2px -2px 0 rgba(117,70,28,.12);
+    }
+    .achievement-item { grid-template-columns: 1fr 64px auto; min-height: 64px; }
+    .rank-item { grid-template-columns: 1fr auto auto; }
+    .shop-item strong, .achievement-item strong, .rank-item strong { display: block; font-size: 14px; color: #4b2817; }
+    .shop-item p, .achievement-item p, .rank-item p { margin: 3px 0 0; font-size: 11px; line-height: 1.35; color: #70411f; }
+    .shop-item .selected { background: #2e7d36; }
+    .shop-preview {
+      width: 54px; height: 44px; display: block; border: 2px solid #7b5125; border-radius: 5px;
+      background: #9fd8ef; box-shadow: inset -2px -2px 0 rgba(117,70,28,.12);
+    }
+    .achievement-item.locked { filter: grayscale(.45); opacity: .72; }
+    .achievement-preview {
+      width: 60px; height: 48px; display: block; border: 2px solid #7b5125; border-radius: 5px;
+      background: #9fd8ef; box-shadow: inset -2px -2px 0 rgba(117,70,28,.12);
+    }
+    .rank-list { display: grid; gap: 7px; max-height: 390px; overflow-y: auto; padding-right: 3px; }
+    .rank-meta { font-size: 12px; line-height: 1.4; color: #70411f; }
+    .rank-item.medal {
+      background: linear-gradient(90deg, #fff8d9, #fff0b8);
+      border-width: 3px;
+    }
+    .rank-item .medal-badge {
+      width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%;
+      border: 2px solid #552b17; color: #552b17; font-weight: 900; box-shadow: inset -2px -2px 0 rgba(0,0,0,.13);
+    }
+    .rank-item.gold .medal-badge { background: #f5c542; }
+    .rank-item.silver .medal-badge { background: #d8dee2; }
+    .rank-item.bronze .medal-badge { background: #c9864a; color: #fff8d9; }
+    @media (max-width: 420px) {
+      body { padding: 6px; }
+      .game { width: min(100%, calc((100vh - 88px) * .675)); gap: 5px; }
+      .scorebar { grid-template-columns: .8fr .8fr 1fr; }
+      .scorebar > button { grid-column: auto; font-size: 13px; padding: 0 6px; }
+      .scorebar > div { min-height: 38px; }
+      .menu-row { grid-template-columns: 1fr 1fr 1fr auto; gap: 5px; }
+      .menu-row button, .sound-chip { min-height: 32px; font-size: 12px; padding: 0 6px; }
+      .side-pause { right: 8px; top: auto; bottom: 18px; transform: none; width: 48px; min-height: 54px; font-size: 12px; }
+      .panel-card { padding: 14px; }
+      .shop-item { grid-template-columns: 1fr 50px auto; gap: 6px; }
+      .shop-preview { width: 48px; height: 40px; }
+      .rank-list { max-height: 330px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <section class="scorebar">
+      <div><span>得分</span><strong id="score">0</strong></div>
+      <div><span>最高</span><strong id="best">0</strong></div>
+      <button id="startBtn" type="button">点击开始</button>
+    </section>
+    <section class="menu-row" id="menuRow">
+      <button id="shopBtn" type="button">商店</button>
+      <button id="achievementBtn" type="button">成就</button>
+      <button id="rankBtn" type="button">私人版</button>
+      <label class="sound-chip" id="soundChip"><span>音效</span><input id="soundToggle" type="checkbox" checked /></label>
+    </section>
+    <button class="canvas-button" id="canvasButton" type="button" aria-label="点击让小鸟飞起来">
+      <canvas id="game" width="432" height="640"></canvas>
+    </button>
+    <button class="side-pause hidden" id="pauseBtn" type="button" aria-label="暂停游戏">暂停</button>
+  </main>
+  <section class="name-modal" id="nameModal" aria-label="设置名字">
+    <div class="name-card">
+      <h1>你想叫什么？</h1>
+      <input id="playerNameInput" type="text" maxlength="8" value="小飞鸟" aria-label="你想叫什么？" />
+      <button id="confirmNameBtn" type="button">确定</button>
+    </div>
+  </section>
+  <section class="modal-layer hidden" id="shopModal" aria-label="商店">
+    <div class="panel-card">
+      <div class="panel-head"><h2>商店</h2><button id="closeShopBtn" type="button">关闭</button></div>
+      <div class="wallet"><span id="walletText">金币 0</span><span>只改变外观，不影响数值</span></div>
+      <div id="shopItems"></div>
+    </div>
+  </section>
+  <section class="modal-layer hidden" id="achievementModal" aria-label="成就">
+    <div class="panel-card">
+      <div class="panel-head"><h2>成就</h2><button id="closeAchievementBtn" type="button">关闭</button></div>
+      <div id="achievementItems"></div>
+    </div>
+  </section>
+  <section class="modal-layer hidden" id="rankModal" aria-label="排行榜">
+    <div class="panel-card">
+      <div class="panel-head"><h2>排行榜</h2><button id="closeRankBtn" type="button">关闭</button></div>
+      <p class="rank-meta" id="rankMeta">正在读取前十名...</p>
+      <div class="rank-list" id="rankItems"></div>
+    </div>
+  </section>
+  <script>
+    const W = 432, H = 640, birdX = 112, birdSize = 34, pipeW = 66, pipeGap = 174, groundH = 86;
+    const gravity = 0.36, flapPower = -7.15, pipeSpeed = 2.18, pipeSpacing = 246, readyFrames = 84;
+    const isWechat = /MicroMessenger/i.test(navigator.userAgent);
+    const startBufferFrames = isWechat ? 112 : readyFrames;
+    const boostExitGraceFrames = 18;
+    const weatherCycle = ["clear", "cloudy", "rainy", "windy", "snowy"];
+    const weatherDurationFrames = 1800, weatherBlendFrames = 520;
+    const kinds = [
+      { id: "chick", name: "小鸡", cost: 0, desc: "轻快的新手伙伴，适合稳定练习。" },
+      { id: "owl", name: "夜枭", cost: 24, desc: "夜航风格，眼神更专注，适合挑战高分。" },
+      { id: "parrot", name: "鹦鹉", cost: 36, desc: "鲜艳冒险家，飞过暴风雨也很醒目。" },
+      { id: "ikun-classic", name: "ikun 黑发", cost: 25, rankGift: true, desc: "黑发背带篮球魂，朝左出击，足够醒目。" },
+      { id: "ikun-silver", name: "ikun 银发", cost: 25, rankGift: true, desc: "银发冷面形态，朝左飞行，辨识度拉满。" },
+      { id: "phoenix", name: "凤凰", cost: 0, limited: true, desc: "这是属于你的荣耀！！" }
+    ];
+    const palettes = [
+      { id: "sunny", name: "阳光", cost: 0, desc: "经典暖色，清晰耐看。", body: "#f6c65b", belly: "#ffe68c", wing: "#dd7b2f", beak: "#f07f2f", shadow: "#9a4b1d" },
+      { id: "berry", name: "莓果", cost: 8, desc: "甜莓色外观，适合活泼路线。", body: "#e85b7d", belly: "#ffd1dc", wing: "#9e3b7a", beak: "#ff9a35", shadow: "#6a2146" },
+      { id: "mint", name: "薄荷", cost: 16, desc: "清爽薄荷配色，雨天也容易看清。", body: "#58cfa6", belly: "#d6fff2", wing: "#2d917c", beak: "#ffc34d", shadow: "#226558" },
+      { id: "sky", name: "蓝天", cost: 28, desc: "蓝天主题，视觉更明亮。", body: "#54a7f7", belly: "#d8f1ff", wing: "#2e68c9", beak: "#ffb24a", shadow: "#224386" }
+    ];
+    const pipeThemes = [
+      { id: "green", name: "经典绿管", cost: 0, desc: "像素冒险的经典管道。", colors: { dark:"#146b37", body:"#2fb85f", shine:"#92f27c", edge:"#0b4f2d", capDark:"#0f5d33", cap:"#39c96e" } },
+      { id: "violet", name: "夜幕紫管", cost: 18, desc: "夜晚区域风格，沉稳但不压画面。", colors: { dark:"#3b2f68", body:"#6b5ac8", shine:"#b8a8ff", edge:"#282052", capDark:"#33275f", cap:"#7e6de0" } },
+      { id: "steel", name: "风暴钢管", cost: 32, desc: "暴风雨主题，更像后期挑战区。", colors: { dark:"#334852", body:"#5f7d87", shine:"#b8d2d8", edge:"#22343c", capDark:"#2a414b", cap:"#71929d" } },
+      { id: "gold", name: "纪念金管", cost: 48, desc: "把普通柱子换成纪念金色，十连里程碑仍会更亮。", colors: { dark:"#8b5a05", body:"#d99812", shine:"#fff18a", edge:"#5e3900", capDark:"#7a4700", cap:"#f2b622" } }
+    ];
+    const stageList = [
+      { id: 1, min: 0, name: "Stage 1 白天", sky: "clear", pipeTint: "green" },
+      { id: 2, min: 20, name: "Stage 2 黄昏", sky: "sunset", pipeTint: "green" },
+      { id: 3, min: 50, name: "Stage 3 夜晚", sky: "night", pipeTint: "violet" },
+      { id: 4, min: 100, name: "Stage 4 暴风雨", sky: "storm", pipeTint: "steel" }
+    ];
+    const achievementList = [
+      { id: "score10", score: 10, text: "热身完成", desc: "单局达到10分。", icon: "coin" },
+      { id: "score20", score: 20, text: "稳定起飞", desc: "单局达到20分。", icon: "bird" },
+      { id: "score50", score: 50, text: "乌鸦来袭", desc: "单局达到50分并迎战乌鸦。", icon: "crow" },
+      { id: "boss50", score: 50, text: "乌鸦退场", desc: "躲过乌鸦5次声波。", icon: "boss", manual: true },
+      { id: "score75", score: 75, text: "节奏大师", desc: "单局达到75分。", icon: "stage" },
+      { id: "score100", score: 100, text: "黑凤临空", desc: "单局达到100分并迎战黑凤凰。", icon: "phoenix" },
+      { id: "boss100", score: 100, text: "黑凤熄焰", desc: "躲过黑凤凰5次声波。", icon: "boss", manual: true },
+      { id: "score150", score: 150, text: "风暴挑战者", desc: "单局达到150分。", icon: "storm" },
+      { id: "boss150", score: 150, text: "双生退场", desc: "躲过双生ikun的冲击波和飞鸡。", icon: "boss", manual: true },
+      { id: "score200", score: 200, text: "传奇航线", desc: "单局达到200分。", icon: "crown" }
+    ];
+    const unlockList = [
+      ...kinds.map((item) => ({ id: `bird-${item.id}`, cost: item.cost, text: item.name })),
+      ...palettes.map((item) => ({ id: `color-${item.id}`, cost: item.cost, text: item.name })),
+      ...pipeThemes.map((item) => ({ id: `pipe-${item.id}`, cost: item.cost, text: item.name }))
+    ];
+    const privateOfflineMode = true, privateStartScore = 100;
+    const leaderboardConfig = { env: "pixelbird-d3gvwykqx50c17cbf", collection: "pixelbird_scores", enabled: false };
+    let status = "ready", score = privateStartScore, best = Math.max(privateStartScore, Number(localStorage.getItem("pixel-bird-private-100-best") || privateStartScore));
+    let birdY = 220, velocity = 0, pipes = [], fruits = [], arrows = [], bosses = [], bossWaves = [], effects = [], frame = 0, runFrame = 0, birdKind = "chick", palette = palettes[0];
+    let shieldCharges = 0, shieldGraceUntil = 0, boostUntil = 0, boostPipesLeft = 0, boostGraceUntil = 0, boostWasActive = false, destroyCharges = 0, audioContext = null, ambient = null, bossBgm = null, npcCheerFrame = -999, lastTouchAt = 0;
+    let rewardState = loadRewards(), runReward = null, lastStageId = 1, sessionAchievements = [];
+    let soundEnabled = localStorage.getItem("pixel-bird-sound") !== "off", masterVolume = .78;
+    let playerName = localStorage.getItem("pixel-bird-player-name") || "小飞鸟";
+    let playerId = getPlayerId(), pipeThemeId = localStorage.getItem("pixel-bird-pipe-theme") || "green", leaderboardClient = null;
+    let hasNamed = false;
+    const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
+    const scoreEl = document.getElementById("score"), bestEl = document.getElementById("best"), startBtn = document.getElementById("startBtn"), pauseBtn = document.getElementById("pauseBtn");
+    const menuRow = document.getElementById("menuRow"), soundChip = document.getElementById("soundChip"), soundToggle = document.getElementById("soundToggle"), playerNameInput = document.getElementById("playerNameInput");
+    const nameModal = document.getElementById("nameModal"), confirmNameBtn = document.getElementById("confirmNameBtn");
+    const shopModal = document.getElementById("shopModal"), achievementModal = document.getElementById("achievementModal"), rankModal = document.getElementById("rankModal");
+    const shopItems = document.getElementById("shopItems"), achievementItems = document.getElementById("achievementItems"), rankItems = document.getElementById("rankItems"), walletText = document.getElementById("walletText"), rankMeta = document.getElementById("rankMeta");
+
+    function syncUi() {
+      scoreEl.textContent = score;
+      bestEl.textContent = best;
+      startBtn.textContent = status === "ready" ? "点击开始" : status === "playing" ? "保持节奏" : status === "paused" ? "继续" : "再来一局";
+      pauseBtn.textContent = status === "paused" ? "继续" : "暂停";
+      pauseBtn.classList.toggle("hidden", status === "ready" || status === "ended" || !hasNamed);
+      pauseBtn.classList.toggle("active", status === "paused");
+      document.getElementById("rankBtn").disabled = true;
+      updateAudioPanel();
+      soundToggle.checked = soundEnabled;
+      playerNameInput.value = playerName;
+      nameModal.classList.toggle("hidden", hasNamed);
+      renderShop();
+      renderAchievements();
+    }
+
+    function initControls() {
+      birdKind = localStorage.getItem("pixel-bird-kind") || birdKind;
+      const savedPalette = palettes.find((p) => p.id === localStorage.getItem("pixel-bird-palette"));
+      if (savedPalette) palette = savedPalette;
+      if (!isUnlocked("bird", birdKind)) birdKind = "chick";
+      if (!isUnlocked("color", palette.id)) palette = palettes[0];
+      if (!isUnlocked("pipe", pipeThemeId)) pipeThemeId = "green";
+      syncUi();
+    }
+
+    function updateAudioPanel() {
+      menuRow.classList.toggle("hidden", status === "playing" && runFrame >= startBufferFrames);
+    }
+
+    function loadRewards() {
+      const defaults = ["bird-chick", "color-sunny", "pipe-green", "sunny"];
+      let state;
+      try {
+        state = JSON.parse(localStorage.getItem("pixel-bird-rewards") || "") || {};
+      } catch {
+        state = {};
+      }
+      state.coins = Number(state.coins || 0);
+      state.xp = Number(state.xp || 0);
+      state.achievements = Array.isArray(state.achievements) ? state.achievements : [];
+      state.unlocks = Array.isArray(state.unlocks) ? state.unlocks : [];
+      defaults.forEach((id) => { if (!state.unlocks.includes(id)) state.unlocks.push(id); });
+      return state;
+    }
+
+    function saveRewards() {
+      localStorage.setItem("pixel-bird-rewards", JSON.stringify(rewardState));
+    }
+
+    function getUnlockId(type, id) {
+      return id.includes("-") ? id : `${type}-${id}`;
+    }
+
+    function isUnlocked(type, id) {
+      const key = id ? getUnlockId(type, id) : type;
+      return rewardState.unlocks.includes(key) || key === "sunny";
+    }
+
+    function getUnlockCost(id) {
+      return unlockList.find((item) => item.id === id || item.id.endsWith(`-${id}`))?.cost || 0;
+    }
+
+    function getDifficulty(scoreValue) {
+      const ramp20 = smoothStep(clamp((scoreValue - 20) / 30, 0, 1));
+      const ramp50 = smoothStep(clamp((scoreValue - 50) / 50, 0, 1));
+      const ramp100 = smoothStep(clamp((scoreValue - 100) / 80, 0, 1));
+      const challenge = isChallengeSegment(scoreValue) ? 1 : 0;
+      return {
+        speed: pipeSpeed + ramp20 * .34 + ramp100 * .28 + challenge * .12,
+        gap: 178 - ramp50 * 18 - ramp100 * 10 - challenge * 6,
+        spacing: 252 - ramp20 * 10 - ramp50 * 16 - challenge * 8,
+        randomRange: 76 + ramp50 * 22 + ramp100 * 28,
+        wind: scoreValue >= 100 ? (.018 + ramp100 * .012) : 0,
+        movingChance: scoreValue >= 50 ? clamp((scoreValue - 50) / 120, 0, .28) : 0,
+        arrowRate: scoreValue >= 100 ? 230 : scoreValue >= 50 ? 270 : 320
+      };
+    }
+
+    function getStage(scoreValue) {
+      let stage = stageList[0];
+      for (const next of stageList) if (scoreValue >= next.min) stage = next;
+      return stage;
+    }
+
+    function getRhythm(scoreValue) {
+      const pattern = ["easy", "medium", "hard", "medium", "easy"];
+      const type = pattern[Math.max(0, scoreValue - 1) % pattern.length];
+      return {
+        type,
+        gapBonus: type === "easy" ? 16 : type === "hard" ? -10 : 0,
+        spacingBonus: type === "easy" ? 18 : type === "hard" ? -10 : 0,
+        randomBonus: type === "hard" ? 18 : type === "easy" ? -12 : 0,
+        hazardBias: type === "hard" ? 1 : type === "easy" ? -1 : 0
+      };
+    }
+
+    function isChallengeSegment(scoreValue) {
+      return scoreValue >= 150 && scoreValue % 60 >= 0 && scoreValue % 60 < 12;
+    }
+
+    function renderShop() {
+      if (!shopItems) return;
+      walletText.textContent = `金币 ${rewardState.coins}`;
+      shopItems.innerHTML = "";
+      addShopSection("小鸟皮肤", kinds.map((item) => ({
+        ...item, type: "bird", desc: item.id === "phoenix" ? `${playerName}，${item.desc}` : item.desc, selected: birdKind === item.id,
+        choose: () => { birdKind = item.id; localStorage.setItem("pixel-bird-kind", birdKind); }
+      })));
+      addShopSection("颜色", palettes.map((item) => ({
+        ...item, type: "color", selected: palette.id === item.id,
+        choose: () => { palette = item; localStorage.setItem("pixel-bird-palette", palette.id); }
+      })));
+      addShopSection("柱子主题", pipeThemes.map((item) => ({
+        ...item, type: "pipe", selected: pipeThemeId === item.id,
+        choose: () => { pipeThemeId = item.id; localStorage.setItem("pixel-bird-pipe-theme", pipeThemeId); }
+      })));
+    }
+
+    function addShopSection(title, items) {
+      const section = document.createElement("section");
+      section.className = "shop-section";
+      const h = document.createElement("h3");
+      h.textContent = title;
+      section.appendChild(h);
+      items.forEach((item) => section.appendChild(createShopItem(item)));
+      shopItems.appendChild(section);
+    }
+
+    function createShopItem(item) {
+      const row = document.createElement("div");
+      row.className = "shop-item";
+      const info = document.createElement("div");
+      info.innerHTML = `<strong>${item.name}</strong><p>${item.desc}</p>`;
+      const preview = createShopPreview(item);
+      const btn = document.createElement("button");
+      const unlocked = isUnlocked(item.type, item.id);
+      btn.textContent = item.selected ? "使用中" : unlocked ? "使用" : item.limited ? "进商店领取" : item.rankGift ? `${item.cost}金币/前三赠` : `${item.cost}金币`;
+      btn.className = item.selected ? "selected" : "";
+      btn.onclick = (event) => {
+        event.stopPropagation();
+        if (!unlocked) {
+          if (item.limited) { playCrash(); return; }
+          if (rewardState.coins < item.cost) { playCrash(); return; }
+          rewardState.coins -= item.cost;
+          rewardState.unlocks.push(getUnlockId(item.type, item.id));
+          saveRewards();
+          playUnlock();
+        }
+        item.choose();
+        syncUi();
+      };
+      row.appendChild(info);
+      row.appendChild(preview);
+      row.appendChild(btn);
+      return row;
+    }
+
+    function createShopPreview(item) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 108;
+      canvas.height = 88;
+      canvas.className = "shop-preview";
+      canvas.setAttribute("aria-label", `${item.name}示例图`);
+      const c = canvas.getContext("2d");
+      c.imageSmoothingEnabled = false;
+      c.fillStyle = "#8ed0ee"; c.fillRect(0, 0, 108, 88);
+      c.fillStyle = "rgba(255,255,255,.45)"; c.fillRect(12, 18, 34, 16); c.fillRect(28, 10, 22, 24);
+      if (item.type === "pipe") drawShopPipe(c, item);
+      else drawShopBird(c, item.type === "color" ? item : palettes.find((p) => p.id === palette.id) || palettes[0], item.type === "bird" ? item.id : birdKind);
+      return canvas;
+    }
+
+    function drawShopBird(c, p, kind) {
+      c.save();
+      c.translate(52, 46);
+      c.scale(1.25, 1.25);
+      if (kind === "owl") {
+        c.fillStyle=p.shadow; c.fillRect(-17,-16,31,31); c.fillStyle=p.body; c.fillRect(-14,-18,28,31); c.fillStyle=p.belly; c.fillRect(-9,-5,18,16);
+        c.fillStyle=p.shadow; c.fillRect(-15,-22,9,8); c.fillRect(5,-22,9,8); drawShopEye(c,-8,-13); drawShopEye(c,4,-13); c.fillStyle=p.beak; c.fillRect(0,-5,8,7); c.fillStyle=p.wing; c.fillRect(-22,-3,12,18); c.fillRect(10,-2,12,18);
+      } else if (kind === "parrot") {
+        c.fillStyle=p.shadow; c.fillRect(-18,-12,32,27); c.fillStyle=p.body; c.fillRect(-15,-16,30,27); c.fillStyle=p.belly; c.fillRect(-2,-7,16,18);
+        c.fillStyle="#fff8d9"; c.fillRect(1,-15,12,12); c.fillStyle=p.wing; c.fillRect(-24,-1,18,16); c.fillStyle="#2e68c9"; c.fillRect(-20,9,15,7);
+        c.fillStyle=p.beak; c.fillRect(9,-7,24,10); c.fillStyle="#2f1b18"; c.fillRect(21,0,10,5); c.fillStyle=p.shadow; c.fillRect(25,4,6,4);
+        c.fillStyle="#39c96e"; c.fillRect(-16,12,9,22); c.fillStyle="#f26f3b"; c.fillRect(-7,12,8,25); c.fillStyle="#54a7f7"; c.fillRect(1,12,7,20);
+        c.fillStyle=p.wing; c.fillRect(-12,-25,7,10); c.fillStyle="#f26f3b"; c.fillRect(-5,-28,7,12); c.fillStyle="#54a7f7"; c.fillRect(2,-25,6,9); drawShopEye(c,4,-13);
+      } else if (kind === "phoenix") {
+        c.fillStyle="#8b5a05"; c.fillRect(-20,-11,35,27); c.fillStyle="#f5c542"; c.fillRect(-16,-17,31,29); c.fillStyle="#fff18a"; c.fillRect(-7,-7,18,18);
+        c.fillStyle="#f26f3b"; c.fillRect(-28,-4,21,18); c.fillRect(8,-4,20,18); c.fillStyle="#fff8bd"; c.fillRect(-25,-9,14,8); c.fillRect(13,-10,15,8);
+        c.fillStyle="#ff9a35"; c.fillRect(8,-7,24,9); c.fillStyle="#6a2146"; c.fillRect(22,0,8,4);
+        c.fillStyle="#fff18a"; c.fillRect(-13,-28,6,12); c.fillStyle="#f26f3b"; c.fillRect(-5,-31,7,15); c.fillStyle="#fff18a"; c.fillRect(3,-27,6,11);
+        c.fillStyle="#f26f3b"; c.fillRect(-18,13,8,25); c.fillStyle="#f5c542"; c.fillRect(-9,13,8,30); c.fillStyle="#fff18a"; c.fillRect(0,13,8,25); drawShopEye(c,3,-13);
+      } else if (kind === "ikun-classic" || kind === "ikun-silver") {
+        drawIkunShape(c, kind, false);
+      } else {
+        c.fillStyle=p.shadow; c.fillRect(-17,-11,30,25); c.fillStyle=p.body; c.fillRect(-14,-15,27,26); c.fillStyle=p.belly; c.fillRect(-7,-6,22,18);
+        c.fillStyle=p.beak; c.fillRect(8,-3,20,8); c.fillStyle=p.shadow; c.fillRect(19,1,8,4); drawShopEye(c,3,-12); c.fillStyle=p.wing; c.fillRect(-19,2,17,12); c.fillStyle=p.body; c.fillRect(-16,-2,13,8);
+      }
+      c.restore();
+    }
+
+    function drawShopEye(c, x, y) {
+      c.fillStyle="#fff"; c.fillRect(x,y,8,8); c.fillStyle="#1f1f2a"; c.fillRect(x+4,y+3,3,3);
+    }
+
+    function drawShopPipe(c, item) {
+      const colors = item.colors;
+      c.fillStyle = colors.dark; c.fillRect(38, 10, 32, 68);
+      c.fillStyle = colors.body; c.fillRect(43, 10, 22, 68);
+      c.fillStyle = colors.shine; c.fillRect(47, 10, 6, 68);
+      c.fillStyle = colors.edge; c.fillRect(62, 10, 4, 68);
+      c.fillStyle = colors.capDark; c.fillRect(32, 10, 44, 18); c.fillRect(32, 60, 44, 18);
+      c.fillStyle = colors.cap; c.fillRect(37, 14, 34, 10); c.fillRect(37, 64, 34, 10);
+      c.fillStyle = "#fff8bd"; c.fillRect(58, 16, 5, 5);
+    }
+
+    function renderAchievements() {
+      if (!achievementItems) return;
+      achievementItems.innerHTML = "";
+      achievementList.forEach((item) => {
+        const done = rewardState.achievements.includes(item.id);
+        const row = document.createElement("div");
+        row.className = `achievement-item${done ? "" : " locked"}`;
+        const info = document.createElement("div");
+        info.innerHTML = `<strong>${done ? "已达成" : "未达成"} · ${item.text}</strong><p>${item.desc}</p>`;
+        row.appendChild(info);
+        row.appendChild(createAchievementPreview(item));
+        const scoreTag = document.createElement("strong");
+        scoreTag.textContent = item.manual ? "BOSS" : item.score;
+        row.appendChild(scoreTag);
+        achievementItems.appendChild(row);
+      });
+    }
+
+    function createAchievementPreview(item) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 88; canvas.height = 72; canvas.className = "achievement-preview";
+      const c = canvas.getContext("2d"); c.imageSmoothingEnabled = false;
+      c.fillStyle = item.icon === "storm" ? "#334852" : item.icon === "phoenix" ? "#2f2748" : "#8ed0ee"; c.fillRect(0,0,88,72);
+      c.fillStyle = "rgba(255,255,255,.22)"; c.fillRect(0,0,88,18); c.fillStyle="#5d7b35"; c.fillRect(0,56,88,16);
+      if (item.icon === "coin") { c.fillStyle="#8b5a05"; c.fillRect(18,28,32,32); c.fillStyle="#f5c542"; c.fillRect(23,32,22,24); c.fillStyle="#fff18a"; c.fillRect(28,36,8,8); c.fillStyle="#fff0b8"; c.fillRect(56,22,20,12); c.fillStyle="#7b5125"; c.fillRect(60,26,12,4); }
+      else if (item.icon === "crow") { c.fillStyle="#1f1f2a"; c.fillRect(25,27,32,23); c.fillRect(14,33,18,12); c.fillRect(49,22,12,12); c.fillStyle="#6b4a2c"; c.fillRect(12,35,16,6); c.fillStyle="#fff"; c.fillRect(47,29,6,6); c.fillStyle="#f26f3b"; c.fillRect(2,34,12,4); }
+      else if (item.icon === "phoenix") { c.fillStyle="#2b1b29"; c.fillRect(30,23,28,24); c.fillStyle="#7c1732"; c.fillRect(12,31,26,14); c.fillRect(53,31,23,14); c.fillStyle="#f26f3b"; c.fillRect(36,12,14,18); c.fillStyle="#fff18a"; c.fillRect(40,16,6,8); c.fillStyle="#f26f3b"; c.fillRect(18,50,54,5); }
+      else if (item.icon === "boss") { c.fillStyle="#552b17"; c.fillRect(20,18,42,28); c.fillStyle="#2b1b29"; c.fillRect(28,12,30,12); c.fillStyle="#f26f3b"; c.fillRect(9,49,70,6); c.fillStyle="#fff18a"; c.fillRect(18,56,52,5); c.fillStyle="#fff"; c.fillRect(31,27,7,7); c.fillRect(48,27,7,7); }
+      else if (item.icon === "storm") { c.fillStyle="#d8dee2"; c.fillRect(14,16,48,16); c.fillRect(28,9,31,12); c.fillStyle="#fff18a"; c.fillRect(43,30,8,18); c.fillRect(34,44,9,14); c.fillStyle="#83c8ff"; c.fillRect(12,44,5,10); c.fillRect(65,42,5,12); }
+      else if (item.icon === "crown") { c.fillStyle="#8b5a05"; c.fillRect(22,44,44,10); c.fillStyle="#f5c542"; c.fillRect(24,25,9,22); c.fillRect(40,15,9,32); c.fillRect(56,25,9,22); c.fillStyle="#fff18a"; c.fillRect(41,20,7,7); c.fillStyle="#f26f3b"; c.fillRect(16,57,56,5); }
+      else { c.fillStyle="#f6c65b"; c.fillRect(26,24,28,25); c.fillStyle="#ffe68c"; c.fillRect(35,33,18,15); c.fillStyle="#f07f2f"; c.fillRect(18,31,20,7); c.fillStyle="#1f1f2a"; c.fillRect(38,27,4,4); c.fillStyle="#fff18a"; c.fillRect(59,18,14,14); }
+      return canvas;
+    }
+
+    function checkAchievementPopups(scoreValue) {
+      const fresh = achievementList.filter((a) => !a.manual && scoreValue >= a.score && !rewardState.achievements.includes(a.id));
+      if (!fresh.length) return;
+      fresh.forEach((item, index) => {
+        rewardState.achievements.push(item.id);
+        sessionAchievements.push(item);
+        effects.push({ kind: "achievement", x: W / 2, y: 46 + index * 34, start: frame + index * 10, life: 142, text: item.text });
+      });
+      saveRewards();
+      playAchievement();
+    }
+
+    function finalizeRewards(finalScore) {
+      const coins = finalScore <= 0 ? 0 : Math.max(1, Math.floor(finalScore / 5) + (finalScore >= 50 ? 3 : 0));
+      const xp = finalScore * 2 + coins;
+      checkAchievementPopups(finalScore);
+      const newAchievements = [...sessionAchievements];
+      const newUnlocks = [];
+      rewardState.coins += coins;
+      rewardState.xp += xp;
+      saveRewards();
+      return { coins, xp, newAchievements, newUnlocks };
+    }
+
+    function getPlayerId() {
+      let id = localStorage.getItem("pixel-bird-player-id");
+      if (!id) {
+        id = Math.random().toString(36).slice(2, 8).toUpperCase();
+        localStorage.setItem("pixel-bird-player-id", id);
+      }
+      return id;
+    }
+
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing) { existing.addEventListener("load", resolve, { once: true }); resolve(); return; }
+        const script = document.createElement("script");
+        script.src = src; script.async = true; script.onload = resolve; script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    async function loadCloudBaseSdk() {
+      const sources = [
+        "https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js",
+        "https://static.cloudbase.net/cloudbase-js-sdk/latest/cloudbase.full.js",
+        "https://static.cloudbase.net/cloudbase-js-sdk/3.0.1/cloudbase.full.js"
+      ];
+      let lastError = null;
+      for (const src of sources) {
+        try {
+          await loadScript(src);
+          if (window.cloudbase || window.tcb) return;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError || new Error("sdk load failed");
+    }
+
+    async function getLeaderboardClient() {
+      if (leaderboardClient) return leaderboardClient;
+      if (!leaderboardConfig.enabled || !navigator.onLine) throw new Error("offline");
+      await loadCloudBaseSdk();
+      const cloudbaseApi = window.cloudbase || window.tcb;
+      if (!cloudbaseApi) throw new Error("sdk");
+      const app = cloudbaseApi.init({ env: leaderboardConfig.env });
+      const auth = app.auth({ persistence: "local" });
+      try {
+        if (typeof auth.signInAnonymously === "function") {
+          const result = await auth.signInAnonymously();
+          if (result && result.error) throw result.error;
+        } else if (typeof auth.anonymousAuthProvider === "function") {
+          await auth.anonymousAuthProvider().signIn();
+        } else {
+          throw new Error("anonymous auth unavailable");
+        }
+      } catch (error) {
+        throw new Error(`auth:${error?.message || error?.code || "failed"}`);
+      }
+      leaderboardClient = app.database();
+      return leaderboardClient;
+    }
+
+    function saveLocalRank(finalScore) {
+      if (privateOfflineMode) return;
+      if (finalScore <= 0) return;
+      const rows = JSON.parse(localStorage.getItem("pixel-bird-local-ranks") || "[]");
+      rows.push({ playerId, name: playerName, score: finalScore, createdAt: Date.now() });
+      rows.sort((a, b) => b.score - a.score || b.createdAt - a.createdAt);
+      localStorage.setItem("pixel-bird-local-ranks", JSON.stringify(rows.slice(0, 10)));
+    }
+
+    async function submitLeaderboard(finalScore) {
+      if (privateOfflineMode) return;
+      if (finalScore <= 0) return;
+      saveLocalRank(finalScore);
+      try {
+        const db = await getLeaderboardClient();
+        await db.collection(leaderboardConfig.collection).add({
+          playerId, name: playerName, score: finalScore, createdAt: Date.now()
+        });
+      } catch (error) {}
+    }
+
+    async function openLeaderboard() {
+      if (privateOfflineMode) {
+        rankModal.classList.remove("hidden");
+        rankItems.innerHTML = "";
+        rankMeta.textContent = "私人100分离线版 · 不参与排行榜";
+        rankItems.innerHTML = `<div class="rank-item"><div><strong>排行榜已关闭</strong><p>这个版本只给你自己测试，从100分开始，不上传成绩。</p></div></div>`;
+        return;
+      }
+      rankModal.classList.remove("hidden");
+      rankItems.innerHTML = "";
+      rankMeta.textContent = `玩家 ${playerName} · 正在读取云端前十名`;
+      try {
+        const db = await getLeaderboardClient();
+        const result = await db.collection(leaderboardConfig.collection).orderBy("score", "desc").limit(40).get();
+        renderRanks(result.data || [], "云端前十名");
+      } catch (error) {
+        const rows = JSON.parse(localStorage.getItem("pixel-bird-local-ranks") || "[]");
+        const hint = getLeaderboardHint(error);
+        renderRanks(rows, `云端暂未连接：${hint}`);
+      }
+    }
+
+    function getLeaderboardHint(error) {
+      const message = String(error?.message || error || "");
+      if (message.includes("offline")) return "当前设备离线";
+      if (message.includes("auth")) return "请开启匿名登录并添加安全域名";
+      if (message.includes("permission") || message.includes("PERMISSION")) return "请检查数据库安全规则";
+      if (message.includes("sdk")) return "CloudBase SDK 未加载";
+      return "先显示本机记录";
+    }
+
+    function renderRanks(rows, title) {
+      rankMeta.textContent = `${title} · 玩家 ${playerName}`;
+      rankItems.innerHTML = "";
+      if (!rows.length) {
+        rankItems.innerHTML = `<div class="rank-item"><div><strong>暂无记录</strong><p>完成一局后会自动记录分数。</p></div></div>`;
+        return;
+      }
+      const topRows = rows
+        .filter((row) => Number(row.score || 0) > 0)
+        .slice(0, 10);
+      if (!topRows.length) {
+        rankItems.innerHTML = `<div class="rank-item"><div><strong>暂无有效成绩</strong><p>完成一局并获得分数后会进入排行榜。</p></div></div>`;
+        return;
+      }
+      maybeAwardRankRewards(topRows, title);
+      topRows.forEach((row, index) => {
+        const item = document.createElement("div");
+        const medalClass = index === 0 ? "gold" : index === 1 ? "silver" : index === 2 ? "bronze" : "";
+        item.className = `rank-item${medalClass ? ` medal ${medalClass}` : ""}`;
+        const medal = index < 3 ? `<span class="medal-badge">${index + 1}</span>` : `<span></span>`;
+        item.innerHTML = `<div><strong>#${index + 1} ${row.name || "小飞鸟"}</strong><p>${index < 3 ? "荣耀席位" : "玩家昵称"}</p></div>${medal}<strong>${Number(row.score || 0)}</strong>`;
+        rankItems.appendChild(item);
+      });
+    }
+
+    function maybeAwardRankRewards(rows, title) {
+      if (title !== "云端前十名" && title !== "云端奖励检查") return;
+      const topThree = rows.slice(0, 3);
+      let awarded = false;
+      if (topThree.some((row) => isCurrentRankRow(row))) {
+        awarded = awardSkin("ikun-classic") || awarded;
+        awarded = awardSkin("ikun-silver") || awarded;
+      }
+      if (rows[0] && isCurrentRankRow(rows[0])) awarded = awardSkin("phoenix") || awarded;
+      if (awarded) {
+        saveRewards();
+        effects.push({ kind: "achievement", x: W / 2, y: 46, start: frame, life: 170, text: "限定皮肤已发放" });
+        playAchievement();
+        renderShop();
+      }
+    }
+
+    function isCurrentRankRow(row) {
+      return row && (row.playerId === playerId || row.name === playerName);
+    }
+
+    function awardSkin(id) {
+      const key = getUnlockId("bird", id);
+      if (rewardState.unlocks.includes(key)) return false;
+      rewardState.unlocks.push(key);
+      return true;
+    }
+
+    async function checkLeaderboardRewards() {
+      if (privateOfflineMode) return;
+      try {
+        const db = await getLeaderboardClient();
+        const result = await db.collection(leaderboardConfig.collection).orderBy("score", "desc").limit(10).get();
+        const rows = (result.data || []).filter((row) => Number(row.score || 0) > 0);
+        maybeAwardRankRewards(rows, "云端奖励检查");
+      } catch (error) {}
+    }
+
+    function normalizeName() {
+      playerName = playerNameInput.value.trim().slice(0, 8) || "小飞鸟";
+      playerNameInput.value = playerName;
+      localStorage.setItem("pixel-bird-player-name", playerName);
+    }
+
+    function restoreViewport() {
+      requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      });
+    }
+
+    function confirmName() {
+      normalizeName();
+      hasNamed = true;
+      playerNameInput.blur();
+      restoreViewport();
+      syncUi();
+    }
+
+    function resetGame() {
+      score = privateStartScore; birdY = 220; velocity = 0; frame = 0; runFrame = 0; shieldCharges = 0; shieldGraceUntil = 0; boostUntil = 0; boostPipesLeft = 0; boostGraceUntil = 0; boostWasActive = false; destroyCharges = 0;
+      stopBossBgm();
+      effects = []; arrows = []; bosses = []; bossWaves = []; runReward = null; sessionAchievements = []; lastStageId = getStage(0).id;
+      const firstPipeX = isWechat ? W + 300 : W + 240;
+      pipes = [createPipe(firstPipeX, 0, score + 1)];
+      pipes.push(createPipe(pipes[0].x + getPipeSpacing(score + 2), 1, score + 2));
+      pipes.push(createPipe(pipes[1].x + getPipeSpacing(score + 3), 2, score + 3));
+      fruits = [createFruit(W + 560, 0)];
+      syncUi();
+    }
+
+    function createPipe(x, seed, scoreValue) {
+      const difficulty = getDifficulty(scoreValue);
+      const rhythm = getRhythm(scoreValue);
+      const range = difficulty.randomRange + rhythm.randomBonus;
+      const wave = Math.sin(seed * 1.7) * range;
+      const gapSize = clamp(difficulty.gap + rhythm.gapBonus, 136, 196);
+      const gapY = clamp(238 + wave + ((seed * 43) % Math.max(40, range)), 150, H - groundH - 142);
+      const moving = scoreValue >= 50 && ((seed * 37 + scoreValue) % 100) < difficulty.movingChance * 100 && rhythm.type !== "easy";
+      return { x, gapY, baseGapY: gapY, gapSize, passed: false, scoreValue, moving, rhythm: rhythm.type, mechanism: createMechanism(scoreValue, rhythm), hazard: createPipeHazard(scoreValue, rhythm) };
+    }
+
+    function getPipeSpacing(scoreValue) {
+      const difficulty = getDifficulty(scoreValue), rhythm = getRhythm(scoreValue);
+      return clamp(difficulty.spacing + rhythm.spacingBonus, 210, 272);
+    }
+
+    function createMechanism(scoreValue, rhythm) {
+      if (hasBossAtScore(scoreValue) || hasBossAtScore(scoreValue - 1) || hasBossAtScore(scoreValue + 1)) return null;
+      if (scoreValue < 4 || scoreValue % 10 === 0 || scoreValue % 4 !== 0) return null;
+      if (scoreValue % 8 === 4) return null;
+      if (rhythm.type === "easy") return null;
+      const kinds = ["gear", "spinner", "spark", "blade", "drop"];
+      return { kind: kinds[scoreValue % kinds.length], offsetY: scoreValue % 2 === 0 ? -34 : 34 };
+    }
+
+    function createPipeHazard(scoreValue, rhythm) {
+      if (hasBossAtScore(scoreValue) || hasBossAtScore(scoreValue - 1) || hasBossAtScore(scoreValue + 1)) return null;
+      if (scoreValue < 3 || scoreValue % 10 === 0) return null;
+      if (rhythm.type === "easy") return null;
+      if (scoreValue % 7 === 0 && scoreValue % 14 !== 7) return { kind: "fire", side: scoreValue % 2 ? "top" : "bottom", phase: scoreValue * 13 };
+      if (scoreValue % 6 === 0 && scoreValue % 12 !== 6) return { kind: "spike", side: scoreValue % 2 ? "top" : "bottom", phase: scoreValue * 9 };
+      return null;
+    }
+
+    function hasBossAtScore(scoreValue) {
+      return scoreValue === 50 || scoreValue === 100 || scoreValue === 150;
+    }
+
+    function createFruit(x, seed) {
+      const roll = Math.abs(Math.sin((seed + score * 13.7) * 12.9898) * 43758.5453);
+      const types = roll % 1 < .38 ? ["shield", "boost", "break"] : roll % 1 < .68 ? ["boost", "break", "shield"] : ["break", "shield", "boost"];
+      const type = types[Math.floor(roll * 10) % types.length];
+      const nearestPipe = pipes.reduce((best, pipe) => Math.abs(pipe.x - x) < Math.abs((best?.x || 9999) - x) ? pipe : best, null);
+      const baseY = nearestPipe ? nearestPipe.gapY : 192 + (roll % 1) * 190;
+      const jitter = ((Math.sin(seed * 8.31 + frame * .017) + Math.cos(seed * 3.77)) * 18);
+      const y = clamp(baseY + jitter, 136, H - groundH - 132);
+      return { x, y, type, taken: false, seed };
+    }
+
+    function createArrow(seed) {
+      return { x: W + 44, y: clamp(142 + ((seed * 83) % 300), 110, H - groundH - 82), speed: 2.75 + (seed % 3) * .22, seed };
+    }
+
+    function spawnBossForScore(scoreValue) {
+      if (!hasBossAtScore(scoreValue) || bosses.some((boss) => boss.scoreValue === scoreValue)) return;
+      if (scoreValue === 150) {
+        bosses.push(
+          { type: "ikunTwin", skin: "ikun-classic", attackKind: "shock", scoreValue, x: W + 142, targetX: W - 58, y: 164, baseY: 164, shotsLeft: 5, nextShot: frame + 78, fade: 0, done: false },
+          { type: "ikunTwin", skin: "ikun-silver", attackKind: "chicken", scoreValue, x: W + 188, targetX: W - 92, y: 256, baseY: 256, shotsLeft: 5, nextShot: frame + 118, fade: 0, done: false }
+        );
+        effects.push({ kind: "bossIntro", x: W / 2, y: 154, start: frame, life: 220, text: "双生ikun来袭", sub: "冲击波与飞鸡，各5次" });
+        playTwinBossBgm();
+        return;
+      }
+      const bossName = scoreValue === 50 ? "乌鸦" : "黑凤凰";
+      bosses.push({ type: scoreValue === 50 ? "crow" : "darkPhoenix", scoreValue, x: scoreValue === 50 ? W + 70 : W + 128, targetX: W - 78, y: scoreValue === 50 ? 168 : 218, baseY: scoreValue === 50 ? 168 : 218, shotsLeft: 5, nextShot: frame + 70, fade: 0, done: false });
+      effects.push({ kind: "bossIntro", x: W / 2, y: 154, start: frame, life: 170, text: `${bossName}来袭`, sub: "躲避声波，坚持5次" });
+      playBossIntro(scoreValue === 100);
+    }
+
+    function updateBosses() {
+      for (const boss of bosses) {
+        boss.x += ((boss.targetX || W - 78) - boss.x) * .045;
+        boss.y = (boss.baseY || boss.y) + Math.sin(frame / 28 + boss.scoreValue) * (boss.type === "ikunTwin" ? 5 : 4);
+        if (!boss.done && frame >= boss.nextShot && boss.shotsLeft > 0) {
+          if (boss.attackKind === "chicken") bossWaves.push({ kind: "chicken", x: boss.x - 26, y: boss.y + (boss.shotsLeft % 2 ? -16 : 16), speed: 4.9, type: boss.type, born: frame, seed: boss.shotsLeft });
+          else bossWaves.push({ kind: boss.attackKind === "shock" ? "shock" : "wave", x: boss.x - 20, y: boss.y + (boss.shotsLeft % 2 ? -18 : 18), speed: 4.1 + (boss.scoreValue >= 100 ? .45 : 0), type: boss.type, born: frame });
+          boss.shotsLeft--;
+          boss.nextShot = frame + (boss.scoreValue === 150 ? 72 : 82);
+          playBossWave(boss.attackKind);
+        }
+        if (!boss.done && boss.shotsLeft <= 0 && frame > boss.nextShot - 36) {
+          boss.done = true;
+          unlockManualAchievement(boss.scoreValue === 50 ? "boss50" : boss.scoreValue === 100 ? "boss100" : "boss150");
+        }
+        if (boss.done) boss.fade++;
+      }
+      bossWaves.forEach((wave) => wave.x -= wave.speed);
+      bossWaves = bossWaves.filter((wave) => wave.x > -W - 90);
+      bosses = bosses.filter((boss) => boss.fade < 90);
+    }
+
+    function unlockManualAchievement(id) {
+      const item = achievementList.find((a) => a.id === id);
+      if (!item || rewardState.achievements.includes(id)) return;
+      rewardState.achievements.push(id);
+      sessionAchievements.push(item);
+      saveRewards();
+      effects.push({ kind: "achievement", x: W / 2, y: 46, start: frame, life: 150, text: item.text });
+      playAchievement();
+    }
+
+    function flap() {
+      if (status === "paused") { status = "playing"; syncUi(); return; }
+      const ac = getAudioContext();
+      if (ac) ensureAmbient(ac);
+      playFlap();
+      if (status === "ready" || status === "ended") { resetGame(); status = "playing"; }
+      velocity = flapPower; syncUi();
+    }
+
+    function togglePause() {
+      if (status === "playing") status = "paused";
+      else if (status === "paused") status = "playing";
+      syncUi();
+    }
+
+    function stepGame() {
+      runFrame++;
+      if (runFrame < startBufferFrames) {
+        birdY += Math.sin(frame / 10) * .28;
+        return;
+      }
+      const difficulty = getDifficulty(score);
+      const boosting = frame < boostUntil && boostPipesLeft > 0;
+      if (boostWasActive && !boosting) boostGraceUntil = Math.max(boostGraceUntil, frame + boostExitGraceFrames);
+      boostWasActive = boosting;
+      const speedScale = score === 0 ? .9 : 1;
+      if (boosting) {
+        velocity *= .72;
+        birdY += (H * .43 - birdY) * .045;
+      } else {
+        if (difficulty.wind) velocity += Math.sin(frame / 52) * difficulty.wind;
+        velocity += gravity;
+        birdY += velocity;
+      }
+      const speed = (boosting ? difficulty.speed * 2.1 : difficulty.speed) * speedScale;
+      for (const pipe of pipes) {
+        pipe.x -= speed;
+        if (pipe.moving) pipe.gapY = clamp(pipe.baseGapY + Math.sin((frame + pipe.scoreValue * 17) / 45) * 24, 142, H - groundH - 132);
+        if (!pipe.passed && pipe.x + pipeW < birdX - birdSize / 2) {
+          pipe.passed = true;
+          const nextScore = score + 1, milestone = nextScore % 10 === 0, record = nextScore > best;
+          score = nextScore;
+          const nextStage = getStage(score);
+          if (nextStage.id !== lastStageId) {
+            lastStageId = nextStage.id;
+            effects.push({ kind: "stage", x: W / 2, y: 118, start: frame, life: 110, text: nextStage.name });
+            playMilestone();
+          }
+          if (boosting) {
+            boostPipesLeft--;
+            if (boostPipesLeft <= 0) boostGraceUntil = Math.max(boostGraceUntil, frame + boostExitGraceFrames);
+          }
+          milestone ? playMilestone() : playScore();
+          if (record) { best = nextScore; localStorage.setItem("pixel-bird-private-100-best", String(best)); playRecord(milestone ? .16 : 0); }
+          checkAchievementPopups(score);
+          spawnBossForScore(score);
+          syncUi();
+        }
+      }
+      for (const fruit of fruits) fruit.x -= speed;
+      for (const arrow of arrows) arrow.x -= arrow.speed * speedScale;
+      if (pipes[0] && pipes[0].x + pipeW < -16) {
+        pipes.shift();
+        const last = pipes[pipes.length - 1];
+        pipes.push(createPipe(last.x + getPipeSpacing(last.scoreValue + 1), frame, last.scoreValue + 1));
+      }
+      if (fruits[0] && fruits[0].x < -40) fruits.shift();
+      const lastFruitX = fruits.length ? fruits[fruits.length - 1].x : W;
+      if (lastFruitX < W + pipeSpacing * 3.2) {
+        const fruitSeed = frame + score * 17 + fruits.length * 31;
+        const spacingRoll = Math.abs(Math.sin(fruitSeed * 9.17) * 43758.5453) % 1;
+        fruits.push(createFruit(lastFruitX + pipeSpacing * (2.65 + spacingRoll * 1.05), fruitSeed));
+      }
+      arrows = arrows.filter((arrow) => arrow.x > -70);
+      updateBosses();
+      const twinBossActive = bosses.some((boss) => boss.scoreValue === 150 && !boss.done);
+      if (score >= 50 && !twinBossActive && frame % (isChallengeSegment(score) ? 190 : difficulty.arrowRate) === 0 && arrows.length < (isChallengeSegment(score) ? 3 : 2)) arrows.push(createArrow(frame + score));
+      const birdRect = { x: birdX - birdSize / 2 + 4, y: birdY - birdSize / 2 + 3, width: birdSize - 8, height: birdSize - 6 };
+      const floorY = H - groundH;
+      const hitCeiling = birdRect.y <= 0;
+      const hitGround = birdRect.y + birdRect.height >= floorY;
+      for (const fruit of fruits) {
+        if (!fruit.taken && intersects(birdRect, { x: fruit.x - 18, y: fruit.y - 18, width: 36, height: 36 })) collectFruit(fruit);
+      }
+      const shieldActive = shieldCharges > 0 || frame < shieldGraceUntil;
+      const boostGraceActive = frame < boostGraceUntil;
+      let obstacleHit = false, obstacleType = "hazard";
+      for (const pipe of pipes) {
+        const topH = pipe.gapY - pipe.gapSize / 2, bottomY = pipe.gapY + pipe.gapSize / 2, mech = getMechanismRect(pipe);
+        if (boosting) continue;
+        if (pipe.boostCleared) continue;
+        const hitMech = mech && intersects(birdRect, mech);
+        if (hitMech && destroyCharges > 0 && !boostGraceActive) { breakMechanism(pipe, mech); continue; }
+        const hitPipeBody = intersects(birdRect, { x: pipe.x, y: 0, width: pipeW, height: topH }) ||
+          intersects(birdRect, { x: pipe.x, y: bottomY, width: pipeW, height: floorY - bottomY });
+        const hitPipeHazard = pipeHazardHit(pipe, birdRect);
+        if (hitPipeBody || hitMech || hitPipeHazard) {
+          if (boostGraceActive) pipe.boostCleared = true;
+          obstacleType = hitPipeBody ? "pipe" : "hazard";
+          obstacleHit = true;
+          break;
+        }
+      }
+      const hitArrow = !boosting && arrows.some((arrow) => intersects(birdRect, getArrowRect(arrow)));
+      const hitBossWave = !boosting && bossWaves.some((wave) => intersects(birdRect, getBossWaveRect(wave)));
+      if (!obstacleHit && hitArrow) obstacleType = "hazard";
+      if (!obstacleHit && hitBossWave) obstacleType = "hazard";
+      obstacleHit = obstacleHit || hitArrow || hitBossWave;
+      if (hitGround || hitCeiling) {
+        finishGame();
+      } else if (obstacleHit && boostGraceActive) {
+        arrows = arrows.filter((arrow) => !intersects(birdRect, getArrowRect(arrow)));
+        bossWaves = bossWaves.filter((wave) => !intersects(birdRect, getBossWaveRect(wave)));
+      } else if (obstacleHit && shieldActive) {
+        if (shieldCharges > 0) useShield(birdRect, obstacleType === "pipe" ? 3 : 1);
+        arrows = arrows.filter((arrow) => !intersects(birdRect, getArrowRect(arrow)));
+        bossWaves = bossWaves.filter((wave) => !intersects(birdRect, getBossWaveRect(wave)));
+      } else if (obstacleHit) finishGame();
+      effects = effects.filter((e) => frame - e.start < e.life);
+    }
+
+    function collectFruit(fruit) {
+      fruit.taken = true;
+      effects.push({ kind: fruit.type, x: fruit.x, y: fruit.y, start: frame, life: 42 });
+      if (fruit.type === "shield") shieldCharges = 3;
+      if (fruit.type === "boost") { boostUntil = frame + 420; boostPipesLeft = 3; boostGraceUntil = 0; boostWasActive = true; velocity = 0; }
+      if (fruit.type === "break") destroyCharges = 3;
+      playFruit(fruit.type);
+    }
+
+    function breakMechanism(pipe, rect) {
+      if (!pipe.mechanism) return;
+      effects.push({ kind: "break", x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, start: frame, life: 50 });
+      pipe.mechanism = null;
+      destroyCharges = Math.max(0, destroyCharges - 1);
+      playBreak();
+    }
+
+    function useShield(rect, cost = 1) {
+      shieldCharges = Math.max(0, shieldCharges - cost);
+      shieldGraceUntil = frame + 34;
+      velocity = Math.min(velocity, -2.8);
+      birdY = clamp(birdY - 7, 54, H - groundH - 70);
+      effects.push({ kind: "shield", x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, start: frame, life: 44 });
+      playFruit("shield");
+    }
+
+    function finishGame() {
+      if (status === "ended") return;
+      playCrash();
+      stopBossBgm();
+      best = Math.max(best, score); localStorage.setItem("pixel-bird-private-100-best", String(best));
+      runReward = finalizeRewards(score);
+      submitLeaderboard(score);
+      status = "ended"; syncUi();
+    }
+
+    function loop() {
+      frame++;
+      if (status === "playing") stepGame();
+      const weather = getWeather(frame);
+      updateAmbient(weather);
+      updateAudioPanel();
+      if (status === "playing" && frame - npcCheerFrame > 380) { npcCheerFrame = frame; playNpcCheer(Math.floor(frame / 380)); }
+      drawGame(weather);
+      requestAnimationFrame(loop);
+    }
+
+    function getWeather(frame) {
+      const stage = getStage(score);
+      if (stage.id === 2) return { current: "sunset", next: "sunset", blend: 0 };
+      if (stage.id === 3) return { current: "night", next: "night", blend: 0 };
+      if (stage.id === 4) return { current: "storm", next: "storm", blend: 0 };
+      const index = Math.floor(frame / weatherDurationFrames), inWeather = frame % weatherDurationFrames;
+      const current = weatherCycle[index % weatherCycle.length], next = weatherCycle[(index + 1) % weatherCycle.length];
+      const blend = smoothStep(clamp((inWeather - (weatherDurationFrames - weatherBlendFrames)) / weatherBlendFrames, 0, 1));
+      return { current, next, blend };
+    }
+
+    function drawGame(weather) {
+      ctx.clearRect(0, 0, W, H);
+      drawSky(weather); drawBoostTrail(); drawFruits(); drawPipes(); drawArrows(); drawBosses(); drawGround(); drawNpcs(); drawEffects(); drawWeather(weather); drawBird(); drawProgressHud(); drawPowerHud(); drawScore();
+      if (status !== "playing" || runFrame < startBufferFrames) drawOverlay();
+    }
+
+    function drawSky(weather) {
+      drawSkyBase(weather.current);
+      if (weather.blend > 0) { ctx.save(); ctx.globalAlpha = weather.blend; drawSkyBase(weather.next); ctx.restore(); }
+      drawSkyDetails(weather.current, 1 - weather.blend);
+      if (weather.blend > 0) drawSkyDetails(weather.next, weather.blend);
+    }
+
+    function drawSkyBase(weather) {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      if (weather === "cloudy" || weather === "rainy") { g.addColorStop(0, "#7e9fb3"); g.addColorStop(.55, "#a7bdc4"); g.addColorStop(1, "#d2c887"); }
+      else if (weather === "snowy") { g.addColorStop(0, "#9dc9e5"); g.addColorStop(.55, "#cfe8f5"); g.addColorStop(1, "#eef3e2"); }
+      else if (weather === "sunset") { g.addColorStop(0, "#f08b5f"); g.addColorStop(.55, "#f7c26d"); g.addColorStop(1, "#8fb46a"); }
+      else if (weather === "night") { g.addColorStop(0, "#17254d"); g.addColorStop(.58, "#30477a"); g.addColorStop(1, "#6d7649"); }
+      else if (weather === "storm") { g.addColorStop(0, "#3f5265"); g.addColorStop(.55, "#667c89"); g.addColorStop(1, "#697650"); }
+      else { g.addColorStop(0, "#6ec6f1"); g.addColorStop(.55, "#93dcff"); g.addColorStop(1, "#f8d982"); }
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+
+    function drawSkyDetails(weather, alpha) {
+      if (alpha <= 0) return;
+      ctx.save(); ctx.globalAlpha = alpha;
+      const wind = weather === "windy" ? .8 : 0, tint = weather === "cloudy" || weather === "rainy" ? "#d8dee2" : "#fff";
+      cloud(42 - (frame * (.2 + wind)) % 520, 74, 1, tint);
+      cloud(282 - (frame * (.14 + wind)) % 560, 134, .82, tint);
+      cloud(462 - (frame * (.1 + wind)) % 560, 48, .72, tint);
+      if (weather === "cloudy" || weather === "rainy" || weather === "storm") cloud(174 - (frame * .16) % 560, 34, .95, "#c6cdd2");
+      if (weather === "night") { ctx.fillStyle = "#f5f0c8"; ctx.fillRect(322, 42, 34, 34); ctx.fillStyle = "#17254d"; ctx.fillRect(334, 38, 28, 34); }
+      else if (weather !== "rainy" && weather !== "cloudy" && weather !== "storm") { ctx.fillStyle = "#fff6b0"; ctx.fillRect(318, 42, 42, 42); ctx.fillStyle = "#ffd867"; ctx.fillRect(326, 50, 26, 26); }
+      else { ctx.fillStyle = "rgba(255,244,168,.38)"; ctx.fillRect(326, 50, 26, 26); }
+      ctx.restore();
+    }
+
+    function cloud(x, y, scale, color) {
+      const s = 14 * scale; ctx.fillStyle = color; ctx.fillRect(x, y + s, s * 5, s * 2); ctx.fillRect(x + s, y, s * 2, s * 4); ctx.fillRect(x + s * 3, y + s * .7, s * 2.5, s * 3.3);
+      ctx.fillStyle = "#dff5ff"; ctx.fillRect(x, y + s * 2.5, s * 5.5, s * .7);
+    }
+
+    function drawWeather(weather) {
+      drawWeatherLayer(weather.current, 1 - weather.blend);
+      if (weather.blend > 0) drawWeatherLayer(weather.next, weather.blend);
+    }
+
+    function drawWeatherLayer(weather, alpha) {
+      if (alpha <= 0) return;
+      ctx.save(); ctx.globalAlpha = alpha;
+      if (weather === "rainy" || weather === "storm") {
+        ctx.strokeStyle = "rgba(66,120,178,.72)"; ctx.lineWidth = 3;
+        for (let i = 0; i < 34; i++) { const x = (i * 47 + frame * 1.4) % (W + 80) - 40, y = (i * 83 + frame * 4.2) % (H - groundH); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 10, y + 24); ctx.stroke(); }
+      }
+      if (weather === "snowy") {
+        ctx.fillStyle = "rgba(255,255,255,.88)";
+        for (let i = 0; i < 38; i++) { const x = (i * 41 + Math.sin(frame / 36 + i) * 14) % W, y = (i * 67 + frame * .72) % (H - groundH), s = i % 3 === 0 ? 5 : 3; ctx.fillRect(x, y, s, s); }
+      }
+      if (weather === "windy" || weather === "storm") {
+        ctx.strokeStyle = "rgba(255,255,255,.56)"; ctx.lineWidth = 4;
+        for (let i = 0; i < 7; i++) { const x = (frame * 2.1 + i * 86) % (W + 130) - 90, y = 82 + i * 58 + Math.sin(frame / 34 + i) * 8; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 44, y); ctx.lineTo(x + 62, y - 8); ctx.stroke(); }
+      }
+      if (weather === "cloudy" || weather === "storm" || weather === "night") { ctx.fillStyle = weather === "night" ? "rgba(8,12,30,.18)" : "rgba(79,91,101,.12)"; ctx.fillRect(0, 0, W, H - groundH); }
+      ctx.restore();
+    }
+
+    function drawPipes() {
+      const floorY = H - groundH;
+      for (const pipe of pipes) {
+        const topH = pipe.gapY - pipe.gapSize / 2, bottomY = pipe.gapY + pipe.gapSize / 2, gold = pipe.scoreValue % 10 === 0;
+        pipePart(pipe.x, 0, pipeW, topH, true, gold, pipe.rhythm); pipePart(pipe.x, bottomY, pipeW, floorY - bottomY, false, gold, pipe.rhythm); pipeHazard(pipe, topH, bottomY); mechanism(pipe);
+      }
+    }
+
+    function pipeHazard(pipe, topH, bottomY) {
+      if (!pipe.hazard) return;
+      ctx.save();
+      if (pipe.hazard.kind === "spike") {
+        const baseY = pipe.hazard.side === "top" ? topH + 2 : bottomY - 18;
+        ctx.fillStyle = "#552b17";
+        for (let i = 0; i < 4; i++) {
+          const x = pipe.x + 8 + i * 13;
+          ctx.beginPath();
+          if (pipe.hazard.side === "top") { ctx.moveTo(x, baseY); ctx.lineTo(x + 7, baseY + 18); ctx.lineTo(x + 14, baseY); }
+          else { ctx.moveTo(x, baseY + 18); ctx.lineTo(x + 7, baseY); ctx.lineTo(x + 14, baseY + 18); }
+          ctx.closePath(); ctx.fill();
+        }
+      } else {
+        const active = Math.sin((frame + pipe.hazard.phase) / 34) > -.35;
+        if (active) {
+          const y = pipe.hazard.side === "top" ? topH + 4 : bottomY - 38;
+          for (let i = 0; i < 3; i++) {
+            ctx.fillStyle = i % 2 ? "#fff18a" : "#f26f3b";
+            ctx.fillRect(pipe.x + 14 + i * 13, y + Math.sin(frame / 5 + i) * 4, 10, 34);
+          }
+        }
+      }
+      ctx.restore();
+    }
+
+    function pipeHazardHit(pipe, birdRect) {
+      if (!pipe.hazard) return false;
+      const topH = pipe.gapY - pipe.gapSize / 2, bottomY = pipe.gapY + pipe.gapSize / 2;
+      if (pipe.hazard.kind === "spike") {
+        const y = pipe.hazard.side === "top" ? topH + 2 : bottomY - 18;
+        return intersects(birdRect, { x: pipe.x + 8, y, width: pipeW - 16, height: 18 });
+      }
+      if (Math.sin((frame + pipe.hazard.phase) / 34) <= -.35) return false;
+      const y = pipe.hazard.side === "top" ? topH + 4 : bottomY - 38;
+      return intersects(birdRect, { x: pipe.x + 12, y, width: pipeW - 24, height: 36 });
+    }
+
+    function drawArrows() {
+      for (const arrow of arrows) {
+        ctx.save(); ctx.translate(arrow.x, arrow.y);
+        ctx.fillStyle = "#5d2f18"; ctx.fillRect(-26, -3, 42, 6);
+        ctx.fillStyle = "#d8dee2"; ctx.fillRect(10, -6, 16, 12);
+        ctx.fillStyle = "#8d4f26"; ctx.fillRect(-34, -8, 8, 16); ctx.fillRect(-42, -5, 8, 10);
+        ctx.restore();
+      }
+    }
+
+    function getArrowRect(arrow) {
+      return { x: arrow.x - 34, y: arrow.y - 8, width: 60, height: 16 };
+    }
+
+    function drawBosses() {
+      for (const wave of bossWaves) {
+        ctx.save();
+        ctx.globalAlpha = clamp(1 - (frame - wave.born) / 180, .25, .9);
+        if (wave.kind === "chicken") {
+          ctx.translate(wave.x, wave.y);
+          ctx.fillStyle = "#f6c65b"; ctx.fillRect(-15,-12,25,21);
+          ctx.fillStyle = "#ffe68c"; ctx.fillRect(-7,-7,17,14);
+          ctx.fillStyle = "#f07f2f"; ctx.fillRect(-25,-5,14,6);
+          ctx.fillStyle = "#e85b7d"; ctx.fillRect(-7,-19,6,8); ctx.fillRect(0,-18,6,7);
+          ctx.fillStyle = "#fff"; ctx.fillRect(1,-10,6,6); ctx.fillStyle = "#1f1f2a"; ctx.fillRect(3,-8,3,3);
+          ctx.fillStyle = "#fff18a"; ctx.fillRect(9, -2 + Math.sin(frame / 4) * 3, 18, 5);
+        } else {
+          ctx.fillStyle = wave.type === "darkPhoenix" ? "rgba(124,23,50,.72)" : wave.type === "ikunTwin" ? "rgba(245,197,66,.7)" : "rgba(31,31,42,.62)";
+          ctx.fillRect(wave.x - W, wave.y - 8, W, 16);
+          ctx.fillStyle = wave.type === "ikunTwin" ? "#fff8d9" : "#fff18a";
+          for (let i = 0; i < 5; i++) ctx.fillRect(wave.x - i * 46, wave.y - 3 + Math.sin(frame / 5 + i) * 5, 24, 6);
+        }
+        ctx.restore();
+      }
+      for (const boss of bosses) {
+        ctx.save();
+        ctx.globalAlpha = boss.done ? clamp(1 - boss.fade / 90, 0, 1) : 1;
+        ctx.translate(boss.x, boss.y);
+        ctx.scale(boss.type === "darkPhoenix" ? 1.18 : boss.type === "ikunTwin" ? 1.12 : 1, boss.type === "ikunTwin" ? 1.12 : 1.18);
+        if (boss.type === "crow") {
+          ctx.fillStyle="#1f1f2a"; ctx.fillRect(-22,-15,36,28); ctx.fillRect(-38,-6,22,15); ctx.fillRect(10,-6,26,15);
+          ctx.fillStyle="#4b3a4a"; ctx.fillRect(-16,-21,20,8); ctx.fillStyle="#6b4a2c"; ctx.fillRect(13,-2,24,8);
+          ctx.fillStyle="#fff"; ctx.fillRect(-3,-10,7,7); ctx.fillStyle="#1f1f2a"; ctx.fillRect(1,-7,3,3);
+        } else if (boss.type === "ikunTwin") {
+          drawIkunShape(ctx, boss.skin, Math.sin(frame / 7 + boss.y) > 0);
+          ctx.fillStyle = boss.attackKind === "chicken" ? "#f07f2f" : "#fff18a";
+          ctx.fillRect(-36, -2, 10, 5);
+        } else {
+          ctx.fillStyle="#1f1025"; ctx.fillRect(-24,-18,42,31); ctx.fillStyle="#3a1236"; ctx.fillRect(-18,-23,34,34);
+          ctx.fillStyle="#7c1732"; ctx.fillRect(-42,-7,30,18); ctx.fillRect(9,-7,32,18); ctx.fillStyle="#d99812"; ctx.fillRect(11,-5,28,8);
+          ctx.fillStyle="#2b1b29"; ctx.fillRect(17,0,12,6); ctx.fillStyle="#f26f3b"; ctx.fillRect(-7,-31,9,16); ctx.fillStyle="#fff18a"; ctx.fillRect(2,-27,7,12);
+          ctx.fillStyle="#7c1732"; ctx.fillRect(-18,12,9,24); ctx.fillStyle="#d99812"; ctx.fillRect(-8,12,8,28); ctx.fillStyle="#3a1236"; ctx.fillRect(0,12,9,23);
+          ctx.fillStyle="#fff"; ctx.fillRect(0,-13,7,7); ctx.fillStyle="#1f1f2a"; ctx.fillRect(4,-10,3,3);
+        }
+        ctx.fillStyle="#552b17"; ctx.fillRect(-28, -44, 56, 12);
+        ctx.fillStyle="#f26f3b"; ctx.fillRect(-25, -41, Math.max(0, boss.shotsLeft) * 10, 6);
+        ctx.restore();
+      }
+    }
+
+    function getBossWaveRect(wave) {
+      if (wave.kind === "chicken") return { x: wave.x - 21, y: wave.y - 16, width: 43, height: 28 };
+      return { x: wave.x - W, y: wave.y - 9, width: W, height: 18 };
+    }
+
+    function drawFruits() {
+      for (const fruit of fruits) {
+        if (fruit.taken || fruit.x < -30 || fruit.x > W + 30) continue;
+        const bob = Math.sin(frame / 14 + fruit.seed) * 5;
+        ctx.save(); ctx.translate(fruit.x, fruit.y + bob);
+        const colors = fruit.type === "shield" ? ["#58cfa6", "#d6fff2"] : fruit.type === "boost" ? ["#f6c65b", "#fff18a"] : ["#e85b7d", "#ffd1dc"];
+        ctx.fillStyle = "#552b17"; ctx.fillRect(-11, -10, 22, 22);
+        ctx.fillStyle = colors[0]; ctx.fillRect(-9, -13, 18, 22); ctx.fillRect(-13, -8, 26, 15);
+        ctx.fillStyle = colors[1]; ctx.fillRect(-5, -9, 8, 8);
+        ctx.fillStyle = "#2e7d36"; ctx.fillRect(1, -18, 5, 7); ctx.fillRect(5, -18, 8, 4);
+        ctx.fillStyle = "#5d2f18";
+      if (fruit.type === "shield") { ctx.fillRect(-4, -2, 8, 3); ctx.fillRect(-2, -6, 4, 12); }
+      if (fruit.type === "boost") { ctx.fillRect(-2, -8, 5, 13); ctx.fillRect(3, -3, 5, 5); }
+      if (fruit.type === "break") { ctx.fillRect(-6, -5, 12, 4); ctx.fillRect(-2, -9, 4, 12); }
+      ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.font = "700 9px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif"; ctx.fillStyle = "#552b17";
+      ctx.fillText(fruit.type === "boost" ? "冲刺" : fruit.type === "break" ? "破坏" : "盾防", 0, 14);
+      ctx.restore();
+      }
+    }
+
+    function drawEffects() {
+      for (const e of effects) {
+        const t = (frame - e.start) / e.life, alpha = 1 - t;
+        ctx.save(); ctx.globalAlpha = alpha; ctx.translate(e.x, e.y);
+        if (e.kind === "stage") {
+          ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "700 20px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+          ctx.lineWidth = 5; ctx.strokeStyle = "#552b17"; ctx.strokeText(e.text, 0, 0); ctx.fillStyle = "#fff3aa"; ctx.fillText(e.text, 0, 0);
+        } else if (e.kind === "bossIntro") {
+          const pulse = Math.sin(frame / 5) * 3;
+          ctx.globalAlpha = Math.min(1, alpha * 2);
+          ctx.fillStyle = "rgba(43, 23, 18, .86)";
+          ctx.fillRect(-178, -42 + pulse, 356, 84);
+          ctx.fillStyle = "#7c1732";
+          ctx.fillRect(-170, -34 + pulse, 340, 68);
+          ctx.fillStyle = "#f26f3b";
+          ctx.fillRect(-156, -24 + pulse, 312, 8);
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.font = "900 25px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+          ctx.lineWidth = 5; ctx.strokeStyle = "#2b1712"; ctx.strokeText(e.text, 0, -2 + pulse);
+          ctx.fillStyle = "#fff3aa"; ctx.fillText(e.text, 0, -2 + pulse);
+          ctx.font = "700 13px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+          ctx.fillStyle = "#fff8d9"; ctx.fillText(e.sub, 0, 24 + pulse);
+        } else if (e.kind === "achievement") {
+          const slide = Math.min(1, Math.max(0, t * 5));
+          ctx.globalAlpha = Math.min(1, alpha * 1.8);
+          ctx.translate(0, -42 + slide * 42);
+          ctx.fillStyle = "#552b17"; ctx.fillRect(-150, -21, 300, 42);
+          ctx.fillStyle = "#f2b622"; ctx.fillRect(-144, -16, 288, 32);
+          ctx.fillStyle = "#fff8d9"; ctx.fillRect(-136, -10, 28, 20);
+          ctx.fillStyle = "#8b5a05"; ctx.fillRect(-129, -4, 14, 8);
+          ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "700 15px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+          ctx.fillStyle = "#552b17"; ctx.fillText(`成就达成：${e.text}`, -98, 0);
+        } else if (e.kind === "break") {
+          ctx.fillStyle = "#fff18a";
+          for (let i = 0; i < 9; i++) { const a = i * .7, d = t * 42; ctx.fillRect(Math.cos(a) * d, Math.sin(a) * d, 7, 7); }
+          ctx.strokeStyle = "#7d351b"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 12 + t * 26, 0, Math.PI * 2); ctx.stroke();
+        } else {
+          ctx.strokeStyle = e.kind === "boost" ? "#fff18a" : e.kind === "shield" ? "#d6fff2" : "#ffd1dc";
+          ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(0, 0, 12 + t * 22, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawBoostTrail() {
+      if (!(frame < boostUntil && boostPipesLeft > 0)) return;
+      ctx.save();
+      for (let i = 0; i < 7; i++) {
+        ctx.globalAlpha = .16 - i * .015; ctx.fillStyle = i % 2 ? "#fff18a" : "#f26f3b";
+        ctx.fillRect(birdX - 38 - i * 28, birdY - 6 + Math.sin(frame / 4 + i) * 7, 34, 12);
+      }
+      ctx.restore();
+    }
+
+    function pipePart(x, y, w, h, flip, gold, rhythm) {
+      const capH = 28, capY = flip ? y + h - capH : y, bodyY = flip ? y : y + capH, bodyH = Math.max(h - capH, 0);
+      const stage = getStage(score);
+      const selectedPipe = pipeThemes.find((item) => item.id === pipeThemeId)?.colors;
+      const c = gold ? { dark:"#8b5a05", body:"#d99812", shine:"#fff18a", edge:"#5e3900", capDark:"#7a4700", cap:"#f2b622" } :
+        selectedPipe && pipeThemeId !== "green" ? selectedPipe :
+        stage.pipeTint === "violet" ? { dark:"#3b2f68", body:"#6b5ac8", shine:"#b8a8ff", edge:"#282052", capDark:"#33275f", cap:"#7e6de0" } :
+        stage.pipeTint === "steel" ? { dark:"#334852", body:"#5f7d87", shine:"#b8d2d8", edge:"#22343c", capDark:"#2a414b", cap:"#71929d" } :
+        { dark:"#146b37", body:"#2fb85f", shine:"#92f27c", edge:"#0b4f2d", capDark:"#0f5d33", cap:"#39c96e" };
+      ctx.fillStyle = c.dark; ctx.fillRect(x, bodyY, w, bodyH); ctx.fillStyle = c.body; ctx.fillRect(x + 7, bodyY, w - 14, bodyH);
+      ctx.fillStyle = c.shine; ctx.fillRect(x + 13, bodyY, 10, bodyH); ctx.fillStyle = c.edge; ctx.fillRect(x + w - 12, bodyY, 7, bodyH);
+      ctx.fillStyle = c.capDark; ctx.fillRect(x - 6, capY, w + 12, capH); ctx.fillStyle = c.cap; ctx.fillRect(x, capY + 5, w, capH - 10);
+      ctx.fillStyle = c.shine; ctx.fillRect(x + 11, capY + 8, 12, capH - 16); if (gold) { ctx.fillStyle = "#fff8bd"; ctx.fillRect(x + w - 25, capY + 8, 8, 8); }
+      if (rhythm === "hard" && !gold) { ctx.fillStyle = "rgba(85,43,23,.28)"; ctx.fillRect(x + w - 20, bodyY, 6, bodyH); }
+    }
+
+    function mechanism(pipe) {
+      const r = getMechanismRect(pipe); if (!r || r.x > W + 30 || r.x < -40) return;
+      ctx.save(); ctx.translate(r.x + r.width / 2, r.y + r.height / 2); ctx.rotate(frame / 22);
+      if (pipe.mechanism.kind === "gear") {
+        ctx.fillStyle = "#6b4a2c"; ctx.fillRect(-10, -10, 20, 20); ctx.fillStyle = "#f0c65a"; ctx.fillRect(-6, -6, 12, 12); ctx.fillStyle = "#3d2a1b"; ctx.fillRect(-3, -3, 6, 6);
+        for (let i = 0; i < 4; i++) { ctx.rotate(Math.PI / 2); ctx.fillStyle = "#6b4a2c"; ctx.fillRect(-3, -15, 6, 6); }
+      } else if (pipe.mechanism.kind === "spinner") {
+        ctx.fillStyle = "#7c4d25"; ctx.fillRect(-3, -4, 6, 8); ctx.fillStyle = "#f6e36c"; ctx.fillRect(-3, -18, 6, 14); ctx.fillStyle = "#e85b7d"; ctx.fillRect(4, -3, 14, 6); ctx.fillStyle = "#54a7f7"; ctx.fillRect(-3, 4, 6, 14); ctx.fillStyle = "#58cfa6"; ctx.fillRect(-18, -3, 14, 6);
+      } else if (pipe.mechanism.kind === "spark") {
+        ctx.fillStyle = "#7d351b"; ctx.fillRect(-10, -8, 20, 16); ctx.fillStyle = "#fff18a"; ctx.fillRect(-5, -15, 10, 30); ctx.fillStyle = "#f26f3b"; ctx.fillRect(-12, -3, 24, 6);
+      } else if (pipe.mechanism.kind === "blade") {
+        ctx.fillStyle = "#5d6470"; ctx.fillRect(-4, -4, 8, 8); ctx.fillStyle = "#d8dee2"; ctx.fillRect(-3, -22, 6, 18); ctx.fillRect(4, -3, 18, 6); ctx.fillRect(-3, 4, 6, 18); ctx.fillRect(-22, -3, 18, 6);
+      } else {
+        ctx.fillStyle = "#7b5125"; ctx.fillRect(-11, -8, 22, 20); ctx.fillStyle = "#54a7f7"; ctx.fillRect(-8, -14, 16, 22); ctx.fillStyle = "#d8f1ff"; ctx.fillRect(-3, -10, 6, 7);
+      }
+      ctx.restore();
+    }
+
+    function getMechanismRect(pipe) {
+      if (!pipe.mechanism) return null;
+      const sway = Math.sin(frame / 36 + pipe.scoreValue) * 8, size = pipe.mechanism.kind === "spark" ? 22 : pipe.mechanism.kind === "blade" ? 28 : 24;
+      return { x: pipe.x + pipeW + 34 - size / 2, y: pipe.gapY + pipe.mechanism.offsetY + sway - size / 2, width: size, height: size };
+    }
+
+    function drawGround() {
+      const y = H - groundH; ctx.fillStyle = "#7b5125"; ctx.fillRect(0, y, W, groundH); ctx.fillStyle = "#e9c64d"; ctx.fillRect(0, y, W, 18); ctx.fillStyle = "#4aa33a"; ctx.fillRect(0, y - 10, W, 14);
+      const off = Math.floor((frame * pipeSpeed) % 32);
+      for (let x = -off; x < W + 32; x += 32) { ctx.fillStyle = "#c8903c"; ctx.fillRect(x, y + 28, 18, 8); ctx.fillStyle = "#5e351c"; ctx.fillRect(x + 14, y + 56, 24, 8); }
+    }
+
+    function drawNpcs() {
+      const gy = H - groundH, cheers = ["稳住!", "好样的", "冲呀!", "漂亮!", "别慌", "再来!", "节奏!", "起飞!", "看准!", "坚持!"], animals = [
+        ["rabbit",32,.52,1.16],["cat",110,.6,1.18],["pig",192,.44,1.16],["frog",272,.48,1.12],["dog",352,.58,1.18],
+        ["fox",434,.64,1.16],["panda",514,.44,1.17],["turtle",592,.36,1.12],["squirrel",666,.5,1.15]
+      ];
+      animals.forEach((a, i) => {
+        const x = (a[1] - (frame * a[2]) % 760 + 760) % 760 - 96, y = gy + 22, alpha = clamp(Math.min((x + 46) / 46, (W + 46 - x) / 46), 0, 1);
+        if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; animal(a[0], x, y + Math.sin(frame / 24 + i) * 1.1, a[3]); if ((Math.floor(frame / 145) + i) % 5 === 0) bubble(x - 6, y - 48, cheers[(i + Math.floor(frame / 145)) % cheers.length]); ctx.restore();
+      });
+    }
+
+    function animal(kind, x, y, scale) {
+      ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+      ctx.fillStyle = "rgba(43,23,18,.28)"; ctx.fillRect(-18, -2, 36, 5);
+      ctx.fillStyle = "#4b2817"; ctx.fillRect(-12, -5, 5, 5); ctx.fillRect(6, -5, 5, 5);
+      if (kind === "rabbit") {
+        ctx.fillStyle="#f4f0e6"; ctx.fillRect(-13,-25,26,21); ctx.fillRect(-12,-43,6,21); ctx.fillRect(1,-42,6,20); ctx.fillRect(10,-17,9,8);
+        ctx.fillStyle="#d9a1b4"; ctx.fillRect(-10,-38,2,12); ctx.fillRect(3,-37,2,11); ctx.fillRect(-18,-15,8,5);
+      } else if (kind === "cat") {
+        ctx.fillStyle="#f0b05a"; ctx.fillRect(-14,-25,27,21); ctx.fillRect(-12,-35,8,11); ctx.fillRect(4,-35,8,11);
+        ctx.fillStyle="#fff0b8"; ctx.fillRect(-8,-14,15,8); ctx.fillStyle="#6b3d22"; ctx.fillRect(9,-17,14,4); ctx.fillRect(19,-23,4,10); ctx.fillRect(-20,-15,9,5);
+      } else if (kind === "pig") {
+        ctx.fillStyle="#f0a2b6"; ctx.fillRect(-14,-24,28,20); ctx.fillRect(-11,-33,8,10); ctx.fillRect(4,-33,8,10); ctx.fillRect(10,-15,11,6);
+        ctx.fillStyle="#ffd1dc"; ctx.fillRect(-22,-17,14,9); ctx.fillStyle="#a85b6a"; ctx.fillRect(-18,-14,3,3); ctx.fillRect(-13,-14,3,3);
+      } else if (kind === "frog") {
+        ctx.fillStyle="#5fbf62"; ctx.fillRect(-15,-21,30,17); ctx.fillRect(-12,-30,8,9); ctx.fillRect(3,-30,8,9);
+        ctx.fillStyle="#daf7b8"; ctx.fillRect(-8,-13,16,7); ctx.fillStyle="#3a8a44"; ctx.fillRect(-20,-13,8,5);
+      } else if (kind === "dog") {
+        ctx.fillStyle="#c9864a"; ctx.fillRect(-15,-24,30,20); ctx.fillStyle="#7b5125"; ctx.fillRect(-17,-29,8,14); ctx.fillRect(7,-29,8,14); ctx.fillRect(12,-15,13,4);
+        ctx.fillStyle="#fff0b8"; ctx.fillRect(-7,-13,13,7); ctx.fillStyle="#4b2817"; ctx.fillRect(-21,-15,10,5);
+      } else if (kind === "fox") {
+        ctx.fillStyle="#e66f2e"; ctx.fillRect(-14,-24,28,20); ctx.fillRect(-11,-36,8,13); ctx.fillRect(4,-36,8,13); ctx.fillRect(10,-18,16,7);
+        ctx.fillStyle="#fff0b8"; ctx.fillRect(-8,-13,16,8); ctx.fillRect(22,-18,5,7); ctx.fillStyle="#e66f2e"; ctx.fillRect(-22,-16,12,6);
+      } else if (kind === "panda") {
+        ctx.fillStyle="#f4f0e6"; ctx.fillRect(-15,-25,30,21); ctx.fillStyle="#2d2a2a"; ctx.fillRect(-17,-32,9,9); ctx.fillRect(8,-32,9,9); ctx.fillRect(-9,-17,7,7); ctx.fillRect(3,-17,7,7); ctx.fillRect(11,-14,12,5);
+      } else if (kind === "turtle") {
+        ctx.fillStyle="#6aa86f"; ctx.fillRect(-14,-18,28,14); ctx.fillStyle="#9ed17f"; ctx.fillRect(-8,-27,18,12); ctx.fillStyle="#d4b15f"; ctx.fillRect(-5,-30,11,5); ctx.fillStyle="#3a8a44"; ctx.fillRect(-22,-13,10,7); ctx.fillRect(12,-12,9,5);
+      } else if (kind === "squirrel") {
+        ctx.fillStyle="#a86432"; ctx.fillRect(-14,-24,28,20); ctx.fillRect(10,-35,10,31); ctx.fillRect(17,-41,9,21);
+        ctx.fillStyle="#e0a15b"; ctx.fillRect(-7,-14,14,8); ctx.fillStyle="#7b5125"; ctx.fillRect(-11,-34,7,10); ctx.fillRect(4,-34,7,10); ctx.fillRect(-21,-14,9,5);
+      }
+      ctx.fillStyle="#1f1f2a"; ctx.fillRect(-7,-18,3,3); ctx.fillRect(3,-18,3,3);
+      ctx.fillStyle="#fff8d9"; ctx.fillRect(-4,-9,8,3);
+      ctx.fillStyle="#4b2817"; ctx.fillRect(-11,-4,5,5); ctx.fillRect(7,-4,5,5);
+      ctx.restore();
+    }
+
+    function bubble(x, y, text) {
+      ctx.fillStyle="#fff0b8"; ctx.fillRect(x-20,y-15,40,20); ctx.fillStyle="#7b5125"; ctx.fillRect(x-20,y-15,40,3); ctx.fillRect(x-20,y+2,40,3); ctx.fillRect(x-20,y-15,3,20); ctx.fillRect(x+17,y-15,3,20);
+      ctx.fillStyle="#5d2f18"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.font="700 11px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif"; ctx.fillText(text,x,y-5);
+    }
+
+    function drawBird() {
+      const wingUp = Math.sin(frame / 5) > 0, tilt = clamp(velocity / 13, -.45, .6);
+      ctx.save(); ctx.translate(birdX, birdY); ctx.rotate(tilt);
+      if (shieldCharges > 0) { ctx.strokeStyle = "rgba(214,255,242,.75)"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, 25 + Math.sin(frame / 8) * 2, 0, Math.PI * 2); ctx.stroke(); }
+      if (frame < boostGraceUntil) { ctx.strokeStyle = "rgba(255,241,138,.78)"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, 27 + Math.sin(frame / 5) * 3, 0, Math.PI * 2); ctx.stroke(); }
+      if (birdKind === "owl") owl(wingUp); else if (birdKind === "parrot") parrot(wingUp); else if (birdKind === "phoenix") phoenix(wingUp); else if (birdKind === "ikun-classic" || birdKind === "ikun-silver") ikun(wingUp, birdKind); else chick(wingUp);
+      ctx.restore();
+    }
+    function chick(wingUp) { const p=palette; ctx.fillStyle=p.shadow;ctx.fillRect(-17,-11,30,25);ctx.fillStyle=p.body;ctx.fillRect(-14,-15,27,26);ctx.fillStyle=p.belly;ctx.fillRect(-7,-6,22,18);ctx.fillStyle=p.beak;ctx.fillRect(8,-3,20,8);ctx.fillStyle=p.shadow;ctx.fillRect(19,1,8,4);eye(3,-12);ctx.fillStyle=p.wing;ctx.fillRect(-19,wingUp?-2:6,17,12);ctx.fillStyle=p.body;ctx.fillRect(-16,wingUp?-6:9,13,8); }
+    function owl(wingUp) { const p=palette; ctx.fillStyle=p.shadow;ctx.fillRect(-17,-16,31,31);ctx.fillStyle=p.body;ctx.fillRect(-14,-18,28,31);ctx.fillStyle=p.belly;ctx.fillRect(-9,-5,18,16);ctx.fillStyle=p.shadow;ctx.fillRect(-15,-22,9,8);ctx.fillRect(5,-22,9,8);eye(-8,-13);eye(4,-13);ctx.fillStyle=p.beak;ctx.fillRect(0,-5,8,7);ctx.fillStyle=p.wing;ctx.fillRect(-22,wingUp?-7:3,12,18);ctx.fillRect(10,wingUp?-5:5,12,18); }
+    function parrot(wingUp) { const p=palette; ctx.fillStyle=p.shadow;ctx.fillRect(-18,-12,32,27);ctx.fillStyle=p.body;ctx.fillRect(-15,-16,30,27);ctx.fillStyle=p.belly;ctx.fillRect(-2,-7,16,18);ctx.fillStyle="#fff8d9";ctx.fillRect(1,-15,12,12);ctx.fillStyle=p.wing;ctx.fillRect(-24,wingUp?-5:4,18,16);ctx.fillStyle="#2e68c9";ctx.fillRect(-20,wingUp?7:15,15,7);ctx.fillStyle=p.beak;ctx.fillRect(9,-7,24,10);ctx.fillStyle="#2f1b18";ctx.fillRect(21,0,10,5);ctx.fillStyle=p.shadow;ctx.fillRect(25,4,6,4);ctx.fillStyle="#39c96e";ctx.fillRect(-16,12,9,22);ctx.fillStyle="#f26f3b";ctx.fillRect(-7,12,8,25);ctx.fillStyle="#54a7f7";ctx.fillRect(1,12,7,20);ctx.fillStyle=p.wing;ctx.fillRect(-12,-25,7,10);ctx.fillStyle="#f26f3b";ctx.fillRect(-5,-28,7,12);ctx.fillStyle="#54a7f7";ctx.fillRect(2,-25,6,9);eye(4,-13); }
+    function phoenix(wingUp) { ctx.fillStyle="#8b5a05";ctx.fillRect(-20,-11,35,27);ctx.fillStyle="#f5c542";ctx.fillRect(-16,-17,31,29);ctx.fillStyle="#fff18a";ctx.fillRect(-7,-7,18,18);ctx.fillStyle="#f26f3b";ctx.fillRect(-29,wingUp?-8:0,22,18);ctx.fillRect(8,wingUp?-7:1,21,18);ctx.fillStyle="#fff8bd";ctx.fillRect(-25,wingUp?-12:-4,14,8);ctx.fillRect(13,wingUp?-12:-4,15,8);ctx.fillStyle="#ff9a35";ctx.fillRect(8,-7,24,9);ctx.fillStyle="#6a2146";ctx.fillRect(22,0,8,4);ctx.fillStyle="#fff18a";ctx.fillRect(-13,-28,6,12);ctx.fillStyle="#f26f3b";ctx.fillRect(-5,-31,7,15);ctx.fillStyle="#fff18a";ctx.fillRect(3,-27,6,11);ctx.fillStyle="#f26f3b";ctx.fillRect(-18,13,8,25);ctx.fillStyle="#f5c542";ctx.fillRect(-9,13,8,30);ctx.fillStyle="#fff18a";ctx.fillRect(0,13,8,25);eye(3,-13); }
+    function ikun(wingUp, variant) { drawIkunShape(ctx, variant, wingUp); }
+    function drawIkunShape(c, variant, wingUp) { const silver=variant==="ikun-silver"; c.fillStyle="#1f1f2a";c.fillRect(-17,-11,30,25);c.fillStyle="#f5c542";c.fillRect(-14,-15,28,26);c.fillStyle="#fff18a";c.fillRect(-5,-8,17,17);c.fillStyle=silver?"#c8c8c8":"#2d2a2a";c.fillRect(-18,-25,25,12);c.fillRect(3,-22,16,10);c.fillRect(-20,-17,10,10);c.fillStyle="#fff";c.fillRect(-8,-12,9,9);c.fillRect(3,-12,9,9);c.fillStyle="#1f1f2a";c.fillRect(-5,-9,3,3);c.fillRect(5,-9,3,3);c.fillStyle="#ff9a35";c.fillRect(-30,-5,22,9);c.fillStyle="#6a2146";c.fillRect(-31,0,9,4);c.fillStyle="#e85b7d";c.fillRect(-15,0,6,6);c.fillRect(10,0,6,6);c.fillStyle="#111";c.fillRect(-12,8,27,12);c.fillStyle="#fff";c.fillRect(-9,8,3,12);c.fillRect(5,8,3,12);c.fillStyle=silver?"#7b5125":"#d99812";c.fillRect(15,3,15,19);c.fillStyle="#6b4a2c";c.fillRect(20,7,13,3);c.fillRect(20,15,13,3);c.fillStyle="#222";c.fillRect(-24,wingUp?-5:4,12,15); }
+    function eye(x,y){ctx.fillStyle="#fff";ctx.fillRect(x,y,8,8);ctx.fillStyle="#1f1f2a";ctx.fillRect(x+4,y+3,3,3);}
+
+    function drawPowerHud() {
+      const items = [];
+      if (shieldCharges > 0) items.push([`盾防${shieldCharges}`, "#58cfa6"]);
+      if (frame < boostUntil && boostPipesLeft > 0) items.push([`冲刺${boostPipesLeft}`, "#f6c65b"]);
+      if (destroyCharges > 0) items.push([`破坏${destroyCharges}`, "#e85b7d"]);
+      ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "700 13px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+      items.forEach((item, i) => { const x = 12 + i * 64; ctx.fillStyle = "#552b17"; ctx.fillRect(x, 18, 58, 22); ctx.fillStyle = item[1]; ctx.fillRect(x + 3, 21, 52, 16); ctx.fillStyle = "#fff8d9"; ctx.fillText(item[0], x + 7, 29); });
+    }
+
+    function drawProgressHud() {
+      const stage = getStage(score), challenge = isChallengeSegment(score);
+      ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "700 12px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+      ctx.fillStyle = "rgba(85,43,23,.78)"; ctx.fillRect(12, 48, challenge ? 118 : 92, 20);
+      ctx.fillStyle = "#fff8d9"; ctx.fillText(stage.name.replace("Stage ", "S"), 18, 58);
+      if (challenge) { ctx.fillStyle = "#f26f3b"; ctx.fillText("挑战段", 82, 58); }
+    }
+    function drawScore() { ctx.textAlign="center";ctx.textBaseline="top";ctx.font="700 42px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.lineWidth=7;ctx.strokeStyle="#552b17";ctx.strokeText(String(score),W/2,25);ctx.fillStyle="#fff3aa";ctx.fillText(String(score),W/2,25); }
+    function drawOverlay() {
+      ctx.fillStyle="rgba(34,23,18,.36)";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff0b8";ctx.fillRect(54,192,W-108,184);ctx.fillStyle="#8d4f26";ctx.fillRect(54,192,W-108,10);ctx.fillRect(54,366,W-108,10);ctx.fillRect(54,192,10,184);ctx.fillRect(W-64,192,10,184);
+      const preparing = status === "playing" && runFrame < startBufferFrames;
+      ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#5d2f18";ctx.font="700 28px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+      ctx.fillText(preparing?"准备":status==="ready"?"像素飞鸟":status==="paused"?"已暂停":`${playerName}，再接再厉！`,W/2,230);
+      ctx.font="700 17px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+      ctx.fillText(status==="ended"?"May the force be with you！":preparing?"开局保护中":`本局 ${score}   最高 ${best}`,W/2,274);
+      if (status === "ended" && runReward) {
+        const nextUnlock = unlockList.find((item) => item.id !== "bird-phoenix" && !rewardState.unlocks.includes(item.id));
+        const bonus = runReward.newAchievements.length ? `新成就 ${runReward.newAchievements[0].text}` : nextUnlock ? `目标 ${nextUnlock.text} ${rewardState.coins}/${nextUnlock.cost}金币` : `外观已全部解锁`;
+        ctx.fillStyle = "#5d2f18"; ctx.font="700 13px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+        ctx.fillText(`+${runReward.coins} 金币  +${runReward.xp} 经验`, W/2, 298);
+        ctx.fillText(bonus, W/2, 315);
+      } else if (status === "ready") {
+        ctx.fillStyle = "#8b5a05"; ctx.font="700 13px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";
+        ctx.fillText("云端榜首可获得凤凰限定皮肤", W/2, 298);
+      }
+      ctx.fillStyle="#2e7d36";ctx.fillRect(118, status === "ended" ? 330 : 314,196,34);ctx.fillStyle="#f7ffe8";ctx.font="700 17px Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif";ctx.fillText(preparing?"看准节奏再飞":status==="paused"?"Esc 继续游戏":"点击 / 空格 起飞",W/2,status === "ended" ? 347 : 331);
+    }
+
+    function getAudioContext() { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; if (!audioContext) audioContext = new C(); if (audioContext.state === "suspended") audioContext.resume(); return audioContext; }
+    function ensureAmbient(ac) {
+      if (ambient) return;
+      const rainGain=ac.createGain(), windGain=ac.createGain(), rainFilter=ac.createBiquadFilter(), windFilter=ac.createBiquadFilter(), rainSource=ac.createBufferSource(), windSource=ac.createBufferSource();
+      rainGain.gain.value=.001; windGain.gain.value=.001; rainFilter.type="highpass"; rainFilter.frequency.value=1300; windFilter.type="lowpass"; windFilter.frequency.value=420;
+      rainSource.buffer=noise(ac,2,1); windSource.buffer=noise(ac,3,.55); rainSource.loop=true; windSource.loop=true;
+      rainSource.connect(rainFilter);rainFilter.connect(rainGain);rainGain.connect(ac.destination);windSource.connect(windFilter);windFilter.connect(windGain);windGain.connect(ac.destination);
+      rainSource.start(); windSource.start(); ambient={rainGain,windGain,rainFilter,windFilter};
+    }
+    function outputVolume(vol) { return soundEnabled ? vol * masterVolume : .0001; }
+    function updateAmbient(w) { if (!audioContext || !ambient) return; const rain=weatherAmount(w,"rainy"), wind=Math.max(weatherAmount(w,"windy"),weatherAmount(w,"snowy")*.35), now=audioContext.currentTime; ambient.rainGain.gain.setTargetAtTime(outputVolume(.001+rain*.013),now,.8); ambient.windGain.gain.setTargetAtTime(outputVolume(.001+wind*.009),now,.9); }
+    function weatherAmount(w,m){return (w.current===m?1-w.blend:0)+(w.next===m?w.blend:0);}
+    function noise(ac,dur,intensity){const b=ac.createBuffer(1,ac.sampleRate*dur,ac.sampleRate),data=b.getChannelData(0);let p=0;for(let i=0;i<data.length;i++){const white=Math.random()*2-1;p=p*.86+white*.14;data[i]=(white*.55+p*.45)*intensity;}return b;}
+    function playFlap(){const ac=getAudioContext(); if(!ac||!soundEnabled)return; const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="square";o.frequency.setValueAtTime(520,now);o.frequency.exponentialRampToValueAtTime(880,now+.055);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(outputVolume(.09),now+.008);g.gain.exponentialRampToValueAtTime(.001,now+.09);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.1);}
+    function playScore(){const ac=getAudioContext();if(!ac)return;tone(ac,880,0,.09,.07,"sine");}
+    function playMilestone(){const ac=getAudioContext();if(!ac)return;tone(ac,784,0,.08,.07,"triangle");tone(ac,1046,.075,.1,.08,"triangle");tone(ac,1568,.16,.16,.06,"sine");}
+    function playUnlock(){const ac=getAudioContext();if(!ac)return;tone(ac,659,0,.06,.045,"triangle");tone(ac,880,.055,.08,.05,"triangle");tone(ac,1175,.12,.1,.045,"sine");}
+    function playAchievement(){const ac=getAudioContext();if(!ac)return;tone(ac,523,0,.08,.05,"triangle");tone(ac,784,.08,.09,.055,"triangle");tone(ac,1046,.17,.14,.05,"sine");}
+    function playRecord(delay=0){const ac=getAudioContext();if(!ac)return;tone(ac,659,delay,.07,.05,"sine");tone(ac,988,delay+.07,.11,.06,"sine");}
+    function playNpcCheer(v){if(!audioContext||!soundEnabled)return;const p=[[740,920,"triangle"],[660,880,"sine"],[520,690,"square"],[820,1040,"triangle"],[590,760,"sine"],[700,540,"square"],[880,1108,"triangle"],[610,780,"sine"],[960,720,"triangle"]][v%9];tone(audioContext,p[0],0,.045,.012,p[2]);tone(audioContext,p[1],.055,.05,.011,p[2]);}
+    function playFruit(type){const ac=getAudioContext();if(!ac)return;const base=type==="boost"?1046:type==="shield"?784:698;tone(ac,base,0,.055,.045,"triangle");tone(ac,base*1.25,.055,.08,.04,"sine");}
+    function playBreak(){const ac=getAudioContext();if(!ac)return;tone(ac,220,0,.06,.035,"square");tone(ac,330,.045,.08,.03,"triangle");}
+    function playBossWave(kind){const ac=getAudioContext();if(!ac)return;if(kind==="chicken"){tone(ac,620,0,.05,.026,"square");tone(ac,820,.045,.06,.022,"triangle");return;}tone(ac,kind==="shock"?210:160,0,.12,.035,"sawtooth");tone(ac,kind==="shock"?150:110,.08,.16,.025,"sine");}
+    function playBossIntro(stronger=false){const ac=getAudioContext();if(!ac||!soundEnabled)return;const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="sawtooth";o.frequency.setValueAtTime(stronger?72:88,now);o.frequency.exponentialRampToValueAtTime(stronger?42:54,now+.72);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(outputVolume(stronger?.13:.1),now+.05);g.gain.exponentialRampToValueAtTime(.001,now+.82);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.86);tone(ac,stronger?196:174,.12,.12,.04,"triangle");tone(ac,stronger?147:130,.34,.18,.045,"sawtooth");tone(ac,stronger?98:110,.58,.2,.04,"sine");}
+    function playTwinBossBgm(){if(!soundEnabled)return;stopBossBgm();try{bossBgm=new Audio("ikun-boss.mp3");bossBgm.volume=Math.min(.32, outputVolume(.28));bossBgm.currentTime=0;const p=bossBgm.play();if(p&&p.catch)p.catch(()=>{});setTimeout(()=>stopBossBgm(),8000);}catch(error){}playBossIntro(true);}
+    function stopBossBgm(){if(!bossBgm)return;try{bossBgm.pause();bossBgm.currentTime=0;}catch(error){}bossBgm=null;}
+    function playCrash(){const ac=getAudioContext();if(!ac||!soundEnabled)return;const now=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="sawtooth";o.frequency.setValueAtTime(180,now);o.frequency.exponentialRampToValueAtTime(52,now+.28);g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(outputVolume(.16),now+.02);g.gain.exponentialRampToValueAtTime(.001,now+.32);o.connect(g);g.connect(ac.destination);o.start(now);o.stop(now+.34);}
+    function tone(ac,f,delay,dur,vol,type){if(!soundEnabled)return;const s=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(.001,s);g.gain.exponentialRampToValueAtTime(outputVolume(vol),s+.012);g.gain.exponentialRampToValueAtTime(.001,s+dur);o.connect(g);g.connect(ac.destination);o.start(s);o.stop(s+dur+.02);}
+    function clamp(v,min,max){return Math.min(Math.max(v,min),max);} function smoothStep(v){return v*v*(3-2*v);} function intersects(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;}
+    function handlePrimaryInput(event) {
+      if (event) event.preventDefault();
+      if (!hasNamed) {
+        nameModal.classList.remove("hidden");
+        playerNameInput.focus();
+        return;
+      }
+      const now = performance.now();
+      if (now - lastTouchAt < 140) return;
+      lastTouchAt = now;
+      flap();
+    }
+    const canvasButton = document.getElementById("canvasButton");
+    document.getElementById("shopBtn").addEventListener("click", (event) => { event.stopPropagation(); renderShop(); shopModal.classList.remove("hidden"); checkLeaderboardRewards(); });
+    document.getElementById("achievementBtn").addEventListener("click", (event) => { event.stopPropagation(); renderAchievements(); achievementModal.classList.remove("hidden"); });
+    document.getElementById("rankBtn").addEventListener("click", (event) => { event.stopPropagation(); openLeaderboard(); });
+    document.getElementById("closeShopBtn").addEventListener("click", () => shopModal.classList.add("hidden"));
+    document.getElementById("closeAchievementBtn").addEventListener("click", () => achievementModal.classList.add("hidden"));
+    document.getElementById("closeRankBtn").addEventListener("click", () => rankModal.classList.add("hidden"));
+    [shopModal, achievementModal, rankModal].forEach((modal) => {
+      modal.addEventListener("pointerdown", (event) => { if (event.target === modal) modal.classList.add("hidden"); });
+      modal.addEventListener("click", (event) => event.stopPropagation());
+    });
+    soundToggle.addEventListener("change", (event) => {
+      soundEnabled = event.target.checked;
+      if (!soundEnabled) stopBossBgm();
+      localStorage.setItem("pixel-bird-sound", soundEnabled ? "on" : "off");
+      updateAmbient(getWeather(frame));
+      syncUi();
+    });
+    playerNameInput.addEventListener("input", (event) => {
+      const nextName = event.target.value.trim().slice(0, 8) || "小飞鸟";
+      playerName = nextName;
+      localStorage.setItem("pixel-bird-player-name", playerName);
+    });
+    playerNameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        confirmName();
+      }
+    });
+    playerNameInput.addEventListener("blur", restoreViewport);
+    confirmNameBtn.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      confirmName();
+    }, { passive: false });
+    confirmNameBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      confirmName();
+    });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => {
+        if (document.activeElement !== playerNameInput) restoreViewport();
+      });
+    }
+    if (window.PointerEvent) {
+      canvasButton.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
+      startBtn.addEventListener("pointerdown", handlePrimaryInput, { passive: false });
+      pauseBtn.addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); togglePause(); }, { passive: false });
+    } else {
+      canvasButton.addEventListener("touchstart", handlePrimaryInput, { passive: false });
+      startBtn.addEventListener("touchstart", handlePrimaryInput, { passive: false });
+      pauseBtn.addEventListener("touchstart", (event) => { event.preventDefault(); event.stopPropagation(); togglePause(); }, { passive: false });
+      canvasButton.addEventListener("mousedown", handlePrimaryInput, { passive: false });
+      startBtn.addEventListener("mousedown", handlePrimaryInput, { passive: false });
+      pauseBtn.addEventListener("mousedown", (event) => { event.preventDefault(); event.stopPropagation(); togglePause(); }, { passive: false });
+    }
+    document.addEventListener("touchmove", (event) => event.preventDefault(), { passive: false });
+    document.addEventListener("gesturestart", (event) => event.preventDefault());
+    document.addEventListener("contextmenu", (event) => event.preventDefault());
+    window.addEventListener("keydown", (e) => {
+      const modalOpen = !shopModal.classList.contains("hidden") || !achievementModal.classList.contains("hidden") || !rankModal.classList.contains("hidden") || !nameModal.classList.contains("hidden");
+      if (e.code === "Escape") {
+        e.preventDefault();
+        if (!shopModal.classList.contains("hidden")) shopModal.classList.add("hidden");
+        else if (!achievementModal.classList.contains("hidden")) achievementModal.classList.add("hidden");
+        else if (!rankModal.classList.contains("hidden")) rankModal.classList.add("hidden");
+        else togglePause();
+      }
+      if (!modalOpen && ["Space","ArrowUp","Enter"].includes(e.code)) { e.preventDefault(); flap(); }
+    });
+    initControls(); resetGame(); loop();
+  </script>
+</body>
+</html>
+
+
