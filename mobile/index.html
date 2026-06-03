@@ -323,11 +323,11 @@
       return {
         speed: pipeSpeed + ramp20 * .34 + ramp100 * .28 + challenge * .12,
         gap: 178 - ramp50 * 18 - ramp100 * 10 - challenge * 6,
-        spacing: 252 - ramp20 * 10 - ramp50 * 16 - challenge * 8,
+        spacing: 252 - ramp20 * 10 - ramp50 * 16 - ramp100 * 18 - challenge * 8,
         randomRange: 76 + ramp50 * 22 + ramp100 * 28,
         wind: scoreValue >= 100 ? (.018 + ramp100 * .012) : 0,
         movingChance: scoreValue >= 50 ? clamp((scoreValue - 50) / 120, 0, .28) : 0,
-        arrowRate: scoreValue >= 100 ? 230 : scoreValue >= 50 ? 270 : 320
+        arrowRate: scoreValue >= 100 ? 260 : scoreValue >= 50 ? 280 : 320
       };
     }
 
@@ -739,7 +739,7 @@
 
     function getPipeSpacing(scoreValue) {
       const difficulty = getDifficulty(scoreValue), rhythm = getRhythm(scoreValue);
-      return clamp(difficulty.spacing + rhythm.spacingBonus, 210, 272);
+      return clamp(difficulty.spacing + rhythm.spacingBonus, scoreValue >= 100 ? 198 : 210, 272);
     }
 
     function createMechanism(scoreValue, rhythm) {
@@ -775,7 +775,13 @@
       return { x, y, type, taken: false, seed };
     }
 
-    function createArrow(seed) {
+    function createArrow(seed, scoreValue = score) {
+      if (scoreValue >= 100) {
+        const lane = Math.floor(Math.abs(Math.sin(seed * 4.71) * 1000)) % 5;
+        const baseY = 154 + lane * 50;
+        const wobble = Math.sin(seed * 1.93) * 10;
+        return { x: W + 44, y: clamp(baseY + wobble, 148, H - groundH - 112), speed: 2.52 + (seed % 2) * .14, seed };
+      }
       return { x: W + 44, y: clamp(142 + ((seed * 83) % 300), 110, H - groundH - 82), speed: 2.75 + (seed % 3) * .22, seed };
     }
 
@@ -904,7 +910,7 @@
       arrows = arrows.filter((arrow) => arrow.x > -70);
       updateBosses();
       const twinBossActive = bosses.some((boss) => boss.scoreValue === 150 && !boss.done);
-      if (score >= 50 && !twinBossActive && frame % (isChallengeSegment(score) ? 190 : difficulty.arrowRate) === 0 && arrows.length < (isChallengeSegment(score) ? 3 : 2)) arrows.push(createArrow(frame + score));
+      if (score >= 50 && !twinBossActive && frame % (isChallengeSegment(score) ? 220 : difficulty.arrowRate) === 0 && arrows.length < (isChallengeSegment(score) ? 2 : 2)) arrows.push(createArrow(frame + score, score));
       const birdRect = { x: birdX - birdSize / 2 + 4, y: birdY - birdSize / 2 + 3, width: birdSize - 8, height: birdSize - 6 };
       const floorY = H - groundH;
       const hitCeiling = birdRect.y <= 0;
