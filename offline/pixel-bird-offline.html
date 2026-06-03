@@ -199,7 +199,7 @@
     const leaderboardConfig = { env: "pixelbird-d3gvwykqx50c17cbf", collection: "pixelbird_scores", enabled: true };
     let status = "ready", score = 0, best = Number(localStorage.getItem("pixel-bird-offline-best") || 0);
     let birdY = 220, velocity = 0, pipes = [], fruits = [], arrows = [], effects = [], frame = 0, runFrame = 0, birdKind = "chick", palette = palettes[0];
-    let shieldCharges = 0, shieldGraceUntil = 0, boostUntil = 0, boostPipesLeft = 0, destroyCharges = 0, audioContext = null, ambient = null, npcCheerFrame = -999, lastTouchAt = 0;
+    let shieldCharges = 0, shieldGraceUntil = 0, boostUntil = 0, boostPipesLeft = 0, boostGraceUntil = 0, boostWasActive = false, destroyCharges = 0, audioContext = null, ambient = null, npcCheerFrame = -999, lastTouchAt = 0;
     let rewardState = loadRewards(), runReward = null, lastStageId = 1, sessionAchievements = [];
     let soundEnabled = localStorage.getItem("pixel-bird-sound") !== "off", masterVolume = .78;
     let playerName = localStorage.getItem("pixel-bird-player-name") || "小飞鸟";
@@ -388,8 +388,11 @@
         c.fillStyle=p.shadow; c.fillRect(-17,-16,31,31); c.fillStyle=p.body; c.fillRect(-14,-18,28,31); c.fillStyle=p.belly; c.fillRect(-9,-5,18,16);
         c.fillStyle=p.shadow; c.fillRect(-15,-22,9,8); c.fillRect(5,-22,9,8); drawShopEye(c,-8,-13); drawShopEye(c,4,-13); c.fillStyle=p.beak; c.fillRect(0,-5,8,7); c.fillStyle=p.wing; c.fillRect(-22,-3,12,18); c.fillRect(10,-2,12,18);
       } else if (kind === "parrot") {
-        c.fillStyle=p.shadow; c.fillRect(-18,-11,31,25); c.fillStyle=p.body; c.fillRect(-15,-15,29,26); c.fillStyle=p.belly; c.fillRect(-2,-7,16,18);
-        c.fillStyle=p.wing; c.fillRect(-22,0,17,14); c.fillStyle=p.beak; c.fillRect(9,-5,22,8); c.fillStyle="#2f1b18"; c.fillRect(22,-1,8,4); c.fillStyle=p.wing; c.fillRect(-10,-23,8,8); c.fillRect(-2,-25,8,9); drawShopEye(c,2,-12);
+        c.fillStyle=p.shadow; c.fillRect(-18,-12,32,27); c.fillStyle=p.body; c.fillRect(-15,-16,30,27); c.fillStyle=p.belly; c.fillRect(-2,-7,16,18);
+        c.fillStyle="#fff8d9"; c.fillRect(1,-15,12,12); c.fillStyle=p.wing; c.fillRect(-24,-1,18,16); c.fillStyle="#2e68c9"; c.fillRect(-20,9,15,7);
+        c.fillStyle=p.beak; c.fillRect(9,-7,24,10); c.fillStyle="#2f1b18"; c.fillRect(21,0,10,5); c.fillStyle=p.shadow; c.fillRect(25,4,6,4);
+        c.fillStyle="#39c96e"; c.fillRect(-16,12,9,22); c.fillStyle="#f26f3b"; c.fillRect(-7,12,8,25); c.fillStyle="#54a7f7"; c.fillRect(1,12,7,20);
+        c.fillStyle=p.wing; c.fillRect(-12,-25,7,10); c.fillStyle="#f26f3b"; c.fillRect(-5,-28,7,12); c.fillStyle="#54a7f7"; c.fillRect(2,-25,6,9); drawShopEye(c,4,-13);
       } else {
         c.fillStyle=p.shadow; c.fillRect(-17,-11,30,25); c.fillStyle=p.body; c.fillRect(-14,-15,27,26); c.fillStyle=p.belly; c.fillRect(-7,-6,22,18);
         c.fillStyle=p.beak; c.fillRect(8,-3,20,8); c.fillStyle=p.shadow; c.fillRect(19,1,8,4); drawShopEye(c,3,-12); c.fillStyle=p.wing; c.fillRect(-19,2,17,12); c.fillStyle=p.body; c.fillRect(-16,-2,13,8);
@@ -597,7 +600,7 @@
     }
 
     function resetGame() {
-      score = 0; birdY = 220; velocity = 0; frame = 0; runFrame = 0; shieldCharges = 0; shieldGraceUntil = 0; boostUntil = 0; boostPipesLeft = 0; destroyCharges = 0;
+      score = 0; birdY = 220; velocity = 0; frame = 0; runFrame = 0; shieldCharges = 0; shieldGraceUntil = 0; boostUntil = 0; boostPipesLeft = 0; boostGraceUntil = 0; boostWasActive = false; destroyCharges = 0;
       effects = []; arrows = []; runReward = null; sessionAchievements = []; lastStageId = getStage(0).id;
       const firstPipeX = isWechat ? W + 300 : W + 240;
       pipes = [createPipe(firstPipeX, 0, 1)];
@@ -672,6 +675,8 @@
       }
       const difficulty = getDifficulty(score);
       const boosting = frame < boostUntil && boostPipesLeft > 0;
+      if (boostWasActive && !boosting) boostGraceUntil = Math.max(boostGraceUntil, frame + 54);
+      boostWasActive = boosting;
       const speedScale = score === 0 ? .9 : 1;
       if (boosting) {
         velocity *= .72;
@@ -695,7 +700,10 @@
             effects.push({ kind: "stage", x: W / 2, y: 118, start: frame, life: 110, text: nextStage.name });
             playMilestone();
           }
-          if (boosting) boostPipesLeft--;
+          if (boosting) {
+            boostPipesLeft--;
+            if (boostPipesLeft <= 0) boostGraceUntil = Math.max(boostGraceUntil, frame + 54);
+          }
           milestone ? playMilestone() : playScore();
           if (record) { best = nextScore; localStorage.setItem("pixel-bird-offline-best", String(best)); playRecord(milestone ? .16 : 0); }
           checkAchievementPopups(score);
@@ -722,6 +730,7 @@
         if (!fruit.taken && intersects(birdRect, { x: fruit.x - 13, y: fruit.y - 13, width: 26, height: 26 })) collectFruit(fruit);
       }
       const shieldActive = shieldCharges > 0 || frame < shieldGraceUntil;
+      const boostGraceActive = frame < boostGraceUntil;
       let obstacleHit = false;
       for (const pipe of pipes) {
         const topH = pipe.gapY - pipe.gapSize / 2, bottomY = pipe.gapY + pipe.gapSize / 2, mech = getMechanismRect(pipe);
@@ -739,7 +748,7 @@
       obstacleHit = obstacleHit || hitArrow;
       if (hitGround || hitCeiling) {
         finishGame();
-      } else if (obstacleHit && shieldActive) {
+      } else if (obstacleHit && (shieldActive || boostGraceActive)) {
         if (shieldCharges > 0) useShield(birdRect);
         arrows = arrows.filter((arrow) => !intersects(birdRect, getArrowRect(arrow)));
       } else if (obstacleHit) finishGame();
@@ -750,7 +759,7 @@
       fruit.taken = true;
       effects.push({ kind: fruit.type, x: fruit.x, y: fruit.y, start: frame, life: 42 });
       if (fruit.type === "shield") shieldCharges = 3;
-      if (fruit.type === "boost") { boostUntil = frame + 420; boostPipesLeft = 3; velocity = 0; }
+      if (fruit.type === "boost") { boostUntil = frame + 420; boostPipesLeft = 3; boostGraceUntil = 0; boostWasActive = true; velocity = 0; }
       if (fruit.type === "break") destroyCharges = 3;
       playFruit(fruit.type);
     }
@@ -1067,12 +1076,13 @@
       const wingUp = Math.sin(frame / 5) > 0, tilt = clamp(velocity / 13, -.45, .6);
       ctx.save(); ctx.translate(birdX, birdY); ctx.rotate(tilt);
       if (shieldCharges > 0) { ctx.strokeStyle = "rgba(214,255,242,.75)"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, 25 + Math.sin(frame / 8) * 2, 0, Math.PI * 2); ctx.stroke(); }
+      if (frame < boostGraceUntil) { ctx.strokeStyle = "rgba(255,241,138,.78)"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, 27 + Math.sin(frame / 5) * 3, 0, Math.PI * 2); ctx.stroke(); }
       if (birdKind === "owl") owl(wingUp); else if (birdKind === "parrot") parrot(wingUp); else chick(wingUp);
       ctx.restore();
     }
     function chick(wingUp) { const p=palette; ctx.fillStyle=p.shadow;ctx.fillRect(-17,-11,30,25);ctx.fillStyle=p.body;ctx.fillRect(-14,-15,27,26);ctx.fillStyle=p.belly;ctx.fillRect(-7,-6,22,18);ctx.fillStyle=p.beak;ctx.fillRect(8,-3,20,8);ctx.fillStyle=p.shadow;ctx.fillRect(19,1,8,4);eye(3,-12);ctx.fillStyle=p.wing;ctx.fillRect(-19,wingUp?-2:6,17,12);ctx.fillStyle=p.body;ctx.fillRect(-16,wingUp?-6:9,13,8); }
     function owl(wingUp) { const p=palette; ctx.fillStyle=p.shadow;ctx.fillRect(-17,-16,31,31);ctx.fillStyle=p.body;ctx.fillRect(-14,-18,28,31);ctx.fillStyle=p.belly;ctx.fillRect(-9,-5,18,16);ctx.fillStyle=p.shadow;ctx.fillRect(-15,-22,9,8);ctx.fillRect(5,-22,9,8);eye(-8,-13);eye(4,-13);ctx.fillStyle=p.beak;ctx.fillRect(0,-5,8,7);ctx.fillStyle=p.wing;ctx.fillRect(-22,wingUp?-7:3,12,18);ctx.fillRect(10,wingUp?-5:5,12,18); }
-    function parrot(wingUp) { const p=palette; ctx.fillStyle=p.shadow;ctx.fillRect(-18,-11,31,25);ctx.fillStyle=p.body;ctx.fillRect(-15,-15,29,26);ctx.fillStyle=p.belly;ctx.fillRect(-2,-7,16,18);ctx.fillStyle=p.wing;ctx.fillRect(-22,wingUp?-4:5,17,14);ctx.fillStyle=p.beak;ctx.fillRect(9,-5,22,8);ctx.fillStyle="#2f1b18";ctx.fillRect(22,-1,8,4);ctx.fillStyle=p.wing;ctx.fillRect(-10,-23,8,8);ctx.fillRect(-2,-25,8,9);eye(2,-12); }
+    function parrot(wingUp) { const p=palette; ctx.fillStyle=p.shadow;ctx.fillRect(-18,-12,32,27);ctx.fillStyle=p.body;ctx.fillRect(-15,-16,30,27);ctx.fillStyle=p.belly;ctx.fillRect(-2,-7,16,18);ctx.fillStyle="#fff8d9";ctx.fillRect(1,-15,12,12);ctx.fillStyle=p.wing;ctx.fillRect(-24,wingUp?-5:4,18,16);ctx.fillStyle="#2e68c9";ctx.fillRect(-20,wingUp?7:15,15,7);ctx.fillStyle=p.beak;ctx.fillRect(9,-7,24,10);ctx.fillStyle="#2f1b18";ctx.fillRect(21,0,10,5);ctx.fillStyle=p.shadow;ctx.fillRect(25,4,6,4);ctx.fillStyle="#39c96e";ctx.fillRect(-16,12,9,22);ctx.fillStyle="#f26f3b";ctx.fillRect(-7,12,8,25);ctx.fillStyle="#54a7f7";ctx.fillRect(1,12,7,20);ctx.fillStyle=p.wing;ctx.fillRect(-12,-25,7,10);ctx.fillStyle="#f26f3b";ctx.fillRect(-5,-28,7,12);ctx.fillStyle="#54a7f7";ctx.fillRect(2,-25,6,9);eye(4,-13); }
     function eye(x,y){ctx.fillStyle="#fff";ctx.fillRect(x,y,8,8);ctx.fillStyle="#1f1f2a";ctx.fillRect(x+4,y+3,3,3);}
 
     function drawPowerHud() {
